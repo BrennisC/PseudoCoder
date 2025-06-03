@@ -39,13 +39,11 @@ const KEYWORDS: Record<string, TokenType> = {
   'cadena': TokenType.KEYWORD_CADENA,
   'verdadero': TokenType.KEYWORD_VERDADERO,
   'falso': TokenType.KEYWORD_FALSO,
-  // New keywords from user list
   'variable': TokenType.KEYWORD_VARIABLE,
   'constante': TokenType.KEYWORD_CONSTANTE,
   'desde': TokenType.KEYWORD_DESDE,
-  'hacer': TokenType.KEYWORD_HACER, // Generic 'hacer', specific ones like HACER_SEGUN are handled contextually below or by parser
+  'hacer': TokenType.KEYWORD_HACER,
   'caso': TokenType.KEYWORD_CASO,
-  // 'por' will be checked for 'por referencia'
   'de': TokenType.KEYWORD_DE,
   'retornar': TokenType.KEYWORD_RETORNAR,
   'fin': TokenType.KEYWORD_FIN,
@@ -56,7 +54,6 @@ const KEYWORDS: Record<string, TokenType> = {
   'finprocedimiento': TokenType.KEYWORD_FINPROCEDIMIENTO,
   'modulo': TokenType.KEYWORD_MODULO,
   'finmodulo': TokenType.KEYWORD_FINMODULO,
-  // Logical operators as keywords
   'y': TokenType.KEYWORD_LOGICAL_AND,
   '&': TokenType.KEYWORD_LOGICAL_AND,
   '&&': TokenType.KEYWORD_LOGICAL_AND,
@@ -64,7 +61,6 @@ const KEYWORDS: Record<string, TokenType> = {
   '|': TokenType.KEYWORD_LOGICAL_OR,
   '||': TokenType.KEYWORD_LOGICAL_OR,
   'no': TokenType.KEYWORD_LOGICAL_NOT,
-  // '!' handled after checking for '!='
 };
 
 export function lexer(input: string): Token[] {
@@ -99,18 +95,49 @@ export function lexer(input: string): Token[] {
       continue;
     }
 
-    if (char === '/' && input[cursor + 1] === '/') {
-      let value = '//';
-      column += 2;
-      cursor += 2;
-      while (cursor < input.length && input[cursor] !== '\n') {
-        value += input[cursor];
-        cursor++;
-        column++;
+    if (char === '/') {
+      if (input[cursor + 1] === '/') { // Single-line comment
+        let value = '//';
+        column += 2;
+        cursor += 2;
+        while (cursor < input.length && input[cursor] !== '\n') {
+          value += input[cursor];
+          cursor++;
+          column++;
+        }
+        tokens.push({ type: TokenType.COMMENT, value, line, column: column - value.length, startIndex });
+        continue;
+      } else if (input[cursor + 1] === '*') { // Multiline comment
+        let value = '/*';
+        const startColumnComment = column;
+        cursor += 2;
+        column += 2;
+        let commentClosed = false;
+        while (cursor < input.length) {
+          if (input[cursor] === '*' && input[cursor + 1] === '/') {
+            value += '*/';
+            cursor += 2;
+            column += 2;
+            commentClosed = true;
+            break;
+          }
+          if (input[cursor] === '\n') {
+            value += '\n';
+            line++;
+            column = 1;
+          } else {
+            value += input[cursor];
+            column++;
+          }
+          cursor++;
+        }
+        // If not closed, it's still treated as a comment up to EOF for highlighting purposes.
+        // A full parser might error here, but for highlighting, this is often acceptable.
+        tokens.push({ type: TokenType.COMMENT, value, line: commentClosed ? line : line, column: startColumnComment, startIndex });
+        continue;
       }
-      tokens.push({ type: TokenType.COMMENT, value, line, column: column - value.length, startIndex });
-      continue;
     }
+
 
     if (char === '"' || char === "'") {
       const quoteType = char;
@@ -189,7 +216,6 @@ export function lexer(input: string): Token[] {
         tokens.push({ type: TokenType.OPERATOR_NEQ, value: '!=', line, column, startIndex });
         cursor += 2; column += 2; continue;
     }
-    // Handle '!' as KEYWORD_LOGICAL_NOT if not part of '!='
     if (char === '!') {
         tokens.push({ type: TokenType.KEYWORD_LOGICAL_NOT, value: '!', line, column, startIndex });
         cursor++; column++; continue;
@@ -205,7 +231,11 @@ export function lexer(input: string): Token[] {
     if (char === '+') { tokens.push({ type: TokenType.OPERATOR_PLUS, value: '+', line, column, startIndex }); cursor++; column++; continue; }
     if (char === '-') { tokens.push({ type: TokenType.OPERATOR_MINUS, value: '-', line, column, startIndex }); cursor++; column++; continue; }
     if (char === '*') { tokens.push({ type: TokenType.OPERATOR_MULTIPLY, value: '*', line, column, startIndex }); cursor++; column++; continue; }
-    if (char === '/') { tokens.push({ type: TokenType.OPERATOR_DIVIDE, value: '/', line, column, startIndex }); cursor++; column++; continue; }
+    // Check for '/' as part of comment handled above
+    if (char === '/' && !(input[cursor+1] === '/' || input[cursor+1] === '*')) { 
+        tokens.push({ type: TokenType.OPERATOR_DIVIDE, value: '/', line, column, startIndex }); 
+        cursor++; column++; continue; 
+    }
     if (char === '^') { tokens.push({ type: TokenType.OPERATOR_POWER, value: '^', line, column, startIndex }); cursor++; column++; continue; }
     if (char === '%') { tokens.push({ type: TokenType.OPERATOR_MODULO, value: '%', line, column, startIndex }); cursor++; column++; continue; }
 
@@ -270,14 +300,12 @@ export function lexer(input: string): Token[] {
             tokens.push({ type: TokenType.KEYWORD_HACER_MIENTRAS, value, line, column: startColumn, startIndex });
             continue;
         }
-        // If not specific, it might be the generic KEYWORD_HACER (e.g. for PARA...HACER)
-        // This will be picked up by the KEYWORDS[lowerValue] check below.
       }
 
 
       if (KEYWORDS[lowerValue]) {
         tokens.push({ type: KEYWORDS[lowerValue], value: value, line, column: startColumn, startIndex });
-      } else if (lowerValue === 'mod') { // 'mod' is an operator, not a general keyword for highlighting
+      } else if (lowerValue === 'mod') {
         tokens.push({ type: TokenType.OPERATOR_MODULO, value: value, line, column: startColumn, startIndex });
       }
       else {
