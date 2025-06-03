@@ -3,23 +3,19 @@
 
 import * as React from 'react';
 import Editor from 'react-simple-code-editor';
-import { Card, CardContent } from "@/components/ui/card"; // CardHeader and CardTitle removed as they are not used here
-// Icons like UploadCloud, Save, Trash2 are also removed as the buttons were removed from this component in a previous step.
+import { Card, CardContent } from "@/components/ui/card";
 import { lexer } from '@/lib/interpreter/lexer';
 import { TokenType, type Token } from '@/lib/interpreter/types';
 
 interface CodeEditorProps {
   code: string;
   setCode: (code: string) => void;
-  onClear: () => void; // Kept for completeness, though buttons are not in this component
-  onSave: () => void; // Kept for completeness
-  onLoad: (event: React.ChangeEvent<HTMLInputElement>) => void; // Kept for completeness
+  // onClear, onSave, onLoad are removed as buttons are handled at page level now
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave, onLoad }) => {
-  // fileInputRef is removed as the load button is not directly in this component anymore.
+const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode }) => {
   const lineNumbersRef = React.useRef<HTMLDivElement>(null);
-  const editorRef = React.useRef<any>(null); // For react-simple-code-editor's instance
+  const editorRef = React.useRef<any>(null); 
 
   const [lineCount, setLineCount] = React.useState(1);
 
@@ -43,10 +39,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
       const syncStylesAndScroll = () => {
         if (!textareaElement || !lineNumbersDiv) return;
         
-        // Synchronize scroll position
         lineNumbersDiv.scrollTop = textareaElement.scrollTop; 
 
-        // Synchronize styles (font, line height, padding)
         const preElement = textareaElement.parentElement?.querySelector('pre');
         if (preElement) { 
           const computedStyle = window.getComputedStyle(preElement);
@@ -59,16 +53,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
       };
 
       textareaElement.addEventListener('scroll', handleScroll);
-      syncStylesAndScroll(); // Initial sync
+      syncStylesAndScroll(); 
 
-      // Cleanup function to remove the event listener
       return () => {
         textareaElement.removeEventListener('scroll', handleScroll);
       };
     }
-  }, [code, lineCount]); // Re-run if code changes (affects scroll height, line count) or lineCount explicitly changes
-
-  // handleLoadClick removed as button is not here
+  }, [code, lineCount]);
 
   const highlightCode = (codeToHighlight: string): (string | JSX.Element)[] => {
     const tokens = lexer(codeToHighlight);
@@ -204,24 +195,15 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
 
   const editorBaseStyle = {
     fontFamily: '"Source Code Pro", monospace',
-    fontSize: '0.875rem', // 14px
-    lineHeight: '1.25rem', // 20px
+    fontSize: '0.875rem', 
+    lineHeight: '1.25rem', 
   };
 
-  const editorPadding = 12; // Standard padding for the editor content area
+  const editorPadding = 12; 
 
   return (
-    // The Card acts as the main container for the editor and line numbers
-    // flex flex-col ensures children (CardContent) stack vertically
-    // flex-grow allows the card to take available vertical space
-    // overflow-hidden on the Card itself is to clip anything that might visually escape, not to stop internal scroll
     <Card className="flex flex-col flex-grow shadow-lg rounded-lg overflow-hidden">
-      {/* CardContent is the direct container for line numbers and the editor
-          It uses flex to place line numbers and editor side-by-side.
-          flex-grow allows CardContent to take available space from Card.
-          p-0 is important as padding is handled by the editor and line numbers div internally.
-          NO overflow property here, to let the Editor component handle its own scroll.
-      */}
+      {/* Removed CardHeader as buttons are no longer here */}
       <CardContent className="flex-grow flex p-0 bg-background">
         <div
           ref={lineNumbersRef}
@@ -229,11 +211,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           style={{
             width: '50px', 
             paddingRight: '10px',
-            overflowY: 'hidden', // CRITICAL: Prevents this div from showing its own scrollbar.
-                                // Its scrollTop is controlled by JS.
-            height: '100%', // Takes full height of CardContent.
+            overflowY: 'hidden', 
+            height: '100%', 
             boxSizing: 'border-box',
-            // Font, line height, and paddingTop/Bottom will be synced from the editor
           }}
         >
           {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNumber) => (
@@ -247,17 +227,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           value={code}
           onValueChange={setCode}
           highlight={highlightCode}
-          padding={editorPadding} // Internal padding for the text area
+          padding={editorPadding} 
           textareaClassName="outline-none"
           preClassName="outline-none" 
           style={{
             ...editorBaseStyle,
-            minHeight: '100%', // Ensures editor's scrollable area tries to fill CardContent
-            flexGrow: 1,       // Takes up remaining horizontal space in CardContent
-            caretColor: 'var(--foreground)', // Or your theme's caret color
-            backgroundColor: 'var(--background)', // Or your theme's editor background
+            minHeight: '100%', 
+            flexGrow: 1,       
+            caretColor: 'var(--foreground)', 
+            backgroundColor: 'var(--background)', 
           }}
-          className="w-full bg-background text-foreground" // Ensures it takes full width within its allocated space
+          className="w-full bg-background text-foreground" 
           aria-label="Pseudocode editor"
         />
       </CardContent>
@@ -266,5 +246,3 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
 };
 
 export default CodeEditor;
-
-    

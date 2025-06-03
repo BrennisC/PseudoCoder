@@ -12,7 +12,7 @@ const OutputConsole: React.FC<OutputConsoleProps> = ({ output }) => {
   return (
     <Card className="flex flex-col flex-grow shadow-lg rounded-lg">
       <CardHeader className="p-4 border-b">
-        <CardTitle className="text-xl font-headline">Console Output</CardTitle>
+        <CardTitle className="text-xl font-headline">OUTPUT</CardTitle>
       </CardHeader>
       <CardContent className="flex-grow p-0">
         <div 
@@ -20,7 +20,7 @@ const OutputConsole: React.FC<OutputConsoleProps> = ({ output }) => {
           aria-live="polite"
           role="log"
         >
-          {output || "Output will appear here..."}
+          {output || "La salida aparecerá aquí..."}
         </div>
       </CardContent>
     </Card>

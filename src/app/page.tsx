@@ -3,18 +3,16 @@
 
 import * as React from 'react';
 import CodeEditor from '@/components/pseudo-coder/code-editor';
-import RequirementsDisplay from '@/components/pseudo-coder/requirements-display';
-import InputConsole from '@/components/pseudo-coder/input-console'; // Nueva importación
+import InputConsole from '@/components/pseudo-coder/input-console';
 import OutputConsole from '@/components/pseudo-coder/output-console';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Play } from 'lucide-react';
+import { Play, SaveIcon } from 'lucide-react'; // SaveIcon might be better than generic Save
 import { executePseudocode } from '@/lib/interpreter'; 
 
 export default function PseudoCoderPage() {
-  const [code, setCode] = React.useState<string>('// Ejemplo:\n// ESCRIBIR "Hola Mundo"\n');
-  const [requirements, setRequirements] = React.useState<string>('// Requerimiento de Ejemplo\n// Crear un programa que muestre "Hola Mundo" en la consola.');
-  const [rawInput, setRawInput] = React.useState<string>(''); // Nuevo estado para la consola de entrada
+  const [code, setCode] = React.useState<string>('// Ejemplo:\n// ESCRIBIR "Hola Mundo"\nProceso Suma\n    // para cargar un dato, se le muestra un mensaje al u\n    // con la instrucción Escribir, y luego se lee el dat\n    // una variable (A para el primero, B para el segundo\n    // la instrucción Leer\n\n    Escribir "Ingrese el primer numero:"\n    Leer A\n\n    Escribir "Ingrese el segundo numero:"\n    Leer B\n\n    // ahora se calcula la suma y se guarda el resultado\n    // variable C mediante la asignación (<-)\n\n    C <- A+B\n\n    // finalmente, se muestra el resultado, precedido de\n    // mensaje para avisar al usuario, todo en una sola\n    // instrucción Escribir\nFinProceso');
+  const [rawInput, setRawInput] = React.useState<string>('');
   const [output, setOutput] = React.useState<string>('');
   const { toast } = useToast();
 
@@ -29,7 +27,6 @@ export default function PseudoCoderPage() {
       return;
     }
     
-    // Procesar la entrada pre-suministrada
     const preSuppliedInputs = rawInput.length > 0 ? rawInput.split('\n') : [];
     const result = executePseudocode(code, preSuppliedInputs);
     setOutput(result);
@@ -47,14 +44,6 @@ export default function PseudoCoderPage() {
         variant: "default"
       });
     }
-  };
-
-  const handleClearCode = () => {
-    setCode('');
-    setOutput('Editor limpiado. Listo para nuevo pseudocódigo.');
-    toast({
-      title: "Editor Limpiado",
-    });
   };
 
   const downloadFile = (content: string, filename: string, type: string) => {
@@ -83,94 +72,47 @@ export default function PseudoCoderPage() {
       description: "Tu pseudocódigo ha sido descargado como 'pseudocode.psc'.",
     });
   };
-  
-  const handleSaveRequirements = () => {
-    if (!requirements.trim()) {
-      toast({
-        title: "Error al Guardar",
-        description: "Nada que guardar. El área de requerimientos está vacía.",
-        variant: "destructive",
-      });
-      return;
-    }
-    downloadFile(requirements, 'requirements.txt', 'text/plain;charset=utf-8');
-    toast({
-      title: "Requerimientos Guardados",
-      description: "Los requerimientos han sido descargados como 'requirements.txt'.",
-    });
-  };
 
-  const loadFileContent = (file: File, setter: (content: string) => void, type: string) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setter(e.target?.result as string);
-      setOutput(`Archivo de ${type} "${file.name}" cargado.`);
-      toast({
-        title: `Archivo de ${type} Cargado`,
-        description: `"${file.name}" cargado exitosamente.`,
-      });
-    };
-    reader.onerror = () => {
-      setOutput(`Error cargando archivo de ${type} "${file.name}".`);
-      toast({
-        title: `Error de Carga`,
-        description: `No se pudo cargar el archivo de ${type} "${file.name}".`,
-        variant: "destructive",
-      });
-    };
-    reader.readAsText(file);
-  };
-
-  const handleLoadCode = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      loadFileContent(file, setCode, "Código");
-    }
-    event.target.value = ''; 
-  };
-
-  const handleLoadRequirements = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      loadFileContent(file, setRequirements, "Requerimientos");
-    }
-    event.target.value = ''; 
-  };
+  // handleClearCode, handleLoadCode are removed as their buttons are removed from CodeEditor
+  // Requirements related states and handlers are removed
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground p-4 gap-4 overflow-hidden">
-      <header className="flex justify-between items-center py-3 px-2 border-b border-border">
+    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+      <header className="flex justify-between items-center py-3 px-6 border-b border-border shrink-0">
         <h1 className="text-2xl sm:text-3xl font-headline font-semibold text-primary">PseudoCoder</h1>
-        <Button 
-          onClick={handleExecute} 
-          className="bg-accent hover:bg-accent/90 text-accent-foreground transition-colors duration-150 shadow-md"
-          aria-label="Execute pseudocode"
-        >
-          <Play className="mr-2 h-5 w-5" /> Ejecutar Código
-        </Button>
       </header>
 
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0">
+      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 min-h-0">
+        {/* Left Column: Code Editor */}
         <div className="md:col-span-2 flex flex-col min-h-0"> 
           <CodeEditor
             code={code}
             setCode={setCode}
-            onClear={handleClearCode}
-            onSave={handleSaveCode}
-            onLoad={handleLoadCode}
+            // onClear, onSave, onLoad props are removed as buttons are no longer in CodeEditor
           />
         </div>
 
-        <div className="flex flex-col gap-4 min-h-0"> {/* Columna derecha */}
-          <div className="flex-1 min-h-0"> 
-             <RequirementsDisplay
-                requirements={requirements}
-                setRequirements={setRequirements}
-                onSave={handleSaveRequirements}
-                onLoad={handleLoadRequirements}
-              />
+        {/* Right Column: Controls, Input, Output */}
+        <div className="flex flex-col gap-4 min-h-0">
+          <div className="flex gap-2 shrink-0">
+            <Button 
+              onClick={handleExecute} 
+              className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground transition-colors duration-150 shadow-md py-3 text-base"
+              aria-label="Execute pseudocode"
+            >
+              <Play className="mr-2 h-5 w-5" /> EJECUTAR
+            </Button>
+            <Button 
+              onClick={handleSaveCode}
+              variant="outline"
+              className="flex-1 py-3 text-base shadow-md"
+              aria-label="Save code"
+            >
+              <SaveIcon className="mr-2 h-5 w-5" /> SAVE
+            </Button>
           </div>
-          <div className="flex-1 min-h-0"> {/* Nuevo contenedor para InputConsole */}
+
+          <div className="flex-1 min-h-0">
             <InputConsole
               value={rawInput}
               onChange={setRawInput}
