@@ -57,8 +57,7 @@ export class Evaluator {
         this.evaluateReadStatement(statement as ReadStatementNode);
         break;
       case 'DefineStatement':
-        // Already handled in the initial pass, but calling again should not harm.
-        this.evaluateDefineStatement(statement as DefineStatementNode);
+        // Already handled in the initial pass.
         break;
       case 'MientrasStatement':
         this.output += `// INFO: Estructura 'Mientras' reconocida. La lógica de ejecución del bucle aún no está implementada.\n`;
@@ -72,7 +71,8 @@ export class Evaluator {
 
   private evaluateDefineStatement(node: DefineStatementNode): void {
     for (const id of node.identifiers) {
-      if (!this.environment.has(id.name)) {
+      // PSeInt initializes numeric to 0, logical to Falso, string to ""
+      if (!this.environment.has(id.name) || this.environment.get(id.name) === undefined) {
         const typeLower = node.dataType.name.toLowerCase();
         if (typeLower === 'entero' || typeLower === 'real' || typeLower === 'numero') {
             this.environment.set(id.name, 0);
@@ -90,7 +90,7 @@ export class Evaluator {
   private evaluateAssignmentStatement(node: AssignmentStatementNode): void {
     const value = this.evaluateExpression(node.expression);
     this.environment.set(node.identifier.name, value);
-    this.output += `> '${node.identifier.name}' toma el valor: ${value}\n`;
+    this.output += `> '${node.identifier.name}' toma el valor: ${this.formatValueForOutput(value)}\n`;
   }
 
   private evaluateReadStatement(node: ReadStatementNode): void {
@@ -100,63 +100,58 @@ export class Evaluator {
 
       this.output += `Ejecutando LEER para la variable: '${variableName}'.\n`;
 
-      // Attempt to get input from pre-supplied list
       if (this.preSuppliedInputs && this.currentInputIndex < this.preSuppliedInputs.length) {
         rawInputValue = this.preSuppliedInputs[this.currentInputIndex];
         this.currentInputIndex++;
-        this.output += `  Input Console proveyó: "${rawInputValue}"\n`;
+        this.output += `  Input Console proveyó: "${rawInputValue}" (para '${variableName}')\n`;
       } else {
-        // Fallback to window.prompt if no pre-supplied inputs are available
-        this.output += `  Esperando entrada del usuario para '${variableName}'...\n`;
+        this.output += `  Esperando entrada interactiva del usuario para '${variableName}'...\n`;
         rawInputValue = window.prompt(`Ingrese valor para ${variableName}:`);
         if (rawInputValue !== null) {
-          this.output += `  Usuario ingresó: "${rawInputValue}"\n`;
-        }
-      }
-
-      if (rawInputValue === null) { // Input was cancelled (e.g., user pressed Cancel on prompt)
-        this.output += `Advertencia: Entrada cancelada para '${variableName}'.`;
-        if (this.environment.has(variableName)) {
-          this.output += ` La variable '${variableName}' conserva su valor anterior: ${this.environment.get(variableName)}.\n`;
+          this.output += `  Usuario ingresó: "${rawInputValue}" (para '${variableName}')\n`;
         } else {
-          this.environment.set(variableName, undefined); // Mark as uninitialized/cancelled read
-          this.output += ` La variable '${variableName}' queda sin inicializar (o indefinida).\n`;
+          this.output += `  Entrada cancelada por el usuario para '${variableName}'.\n`;
         }
-        continue; // Skip further processing for this identifier
       }
 
-      // Try to parse the input value
+      if (rawInputValue === null) {
+        this.output += `Advertencia: Entrada cancelada o no proporcionada para '${variableName}'.`;
+        if (this.environment.has(variableName)) {
+           const currentValue = this.environment.get(variableName);
+           this.output += ` La variable '${variableName}' conserva su valor anterior: ${this.formatValueForOutput(currentValue)}.\n`;
+        } else {
+          this.environment.set(variableName, undefined); 
+          this.output += ` La variable '${variableName}' no tenía valor previo y queda indefinida/sin inicializar.\n`;
+        }
+        continue; 
+      }
+
       const trimmedInput = rawInputValue.trim();
       let assignedValue: any;
       let typeOfValue: string;
 
       const numInput = parseFloat(trimmedInput);
-      // Check if it's a number and the trimmed string is identical to its string representation
-      if (!isNaN(numInput) && String(numInput) === trimmedInput) {
+      if (!isNaN(numInput) && String(numInput) === trimmedInput) { 
         assignedValue = numInput;
         typeOfValue = 'Número';
-        this.environment.set(variableName, numInput);
       } else if (trimmedInput.toLowerCase() === "verdadero") {
         assignedValue = true;
         typeOfValue = 'Lógico';
-        this.environment.set(variableName, true);
       } else if (trimmedInput.toLowerCase() === "falso") {
         assignedValue = false;
         typeOfValue = 'Lógico';
-        this.environment.set(variableName, false);
       } else {
-        // Default to string if not clearly a number or boolean
-        assignedValue = rawInputValue; // Keep original raw input for strings
+        assignedValue = rawInputValue; 
         typeOfValue = 'Texto';
-        this.environment.set(variableName, rawInputValue);
       }
-      this.output += `> '${variableName}' toma el valor: ${assignedValue} (Tipo: ${typeOfValue})\n`;
+      this.environment.set(variableName, assignedValue);
+      this.output += `> '${variableName}' toma el valor: ${this.formatValueForOutput(assignedValue)} (Tipo inferido: ${typeOfValue})\n`;
     }
   }
 
   private evaluateProcesoBlock(node: ProcesoBlockNode): void {
     for (const statement of node.body) {
-       if (statement.type !== 'DefineStatement') {
+       if (statement.type !== 'DefineStatement') { 
          this.evaluateStatement(statement);
        }
     }
@@ -164,7 +159,7 @@ export class Evaluator {
 
   private evaluateExpression(expression: ExpressionNode | null): any {
     if (!expression) {
-        this.runtimeError(`Encountered null expression.`, expression);
+        this.runtimeError(`Se encontró una expresión nula o inválida.`, expression);
         return undefined;
     }
     switch (expression.type) {
@@ -177,16 +172,18 @@ export class Evaluator {
       case 'Identifier':
         const varName = (expression as IdentifierNode).name;
         if (this.environment.has(varName)) {
-          return this.environment.get(varName);
+          const value = this.environment.get(varName);
+          if (value === undefined) {
+             this.output += `Advertencia: Variable '${varName}' usada pero su valor es indefinido. Puede causar un error o comportamiento inesperado.\n`;
+          }
+          return value;
         }
-        // PSeInt often defaults uninitialized variables depending on context (e.g., 0 in arithmetic)
-        // For now, returning undefined and letting operations handle it or erroring.
         this.output += `Advertencia: Variable '${varName}' usada sin valor asignado previamente (o sin Definir explícitamente un valor inicial). Puede causar un error o comportamiento inesperado.\n`;
-        return undefined;
+        return undefined; 
       case 'BinaryExpression':
         return this.evaluateBinaryExpression(expression as BinaryExpressionNode);
       default:
-        this.runtimeError(`Unknown expression type '${(expression as ASTNode)?.type}'.`, expression);
+        this.runtimeError(`Tipo de expresión desconocido o no manejado '${(expression as ASTNode)?.type}'.`, expression);
         return undefined;
     }
   }
@@ -195,52 +192,62 @@ export class Evaluator {
     const left = this.evaluateExpression(node.left);
     const right = this.evaluateExpression(node.right);
 
-    // Handle undefined operands for concatenation
     if (node.operator === TokenType.OPERATOR_PLUS && (typeof left === 'string' || typeof right === 'string')) {
-        const leftStr = left === undefined ? "" : String(left);
-        const rightStr = right === undefined ? "" : String(right);
+        const leftStr = (left === undefined || left === null) ? "" : String(left);
+        const rightStr = (right === undefined || right === null) ? "" : String(right);
         return leftStr + rightStr;
     }
 
     if (left === undefined || right === undefined) {
-        this.runtimeError(`Operación con valor indefinido. L: ${left}, R: ${right} para operador '${node.operator}'. Asegúrese de que las variables estén inicializadas.`, node);
-        return NaN; // Or some other error indicator
+        let missingVars = [];
+        if (left === undefined && node.left.type === 'Identifier') missingVars.push((node.left as IdentifierNode).name);
+        if (right === undefined && node.right.type === 'Identifier') missingVars.push((node.right as IdentifierNode).name);
+        
+        let message = `Operación '${node.operator}' con valor(es) indefinido(s).`;
+        if (missingVars.length > 0) {
+            message += ` Variable(s) no inicializada(s) o con valor indefinido: ${missingVars.join(', ')}.`;
+        }
+        message += ` (L: ${this.formatValueForOutput(left)}, R: ${this.formatValueForOutput(right)}). Asegúrese de que las variables estén inicializadas.`;
+        this.runtimeError(message, node);
+        return NaN; 
     }
-
-    // Type checking for arithmetic operations
-    if ( (node.operator === TokenType.OPERATOR_PLUS ||
-          node.operator === TokenType.OPERATOR_MINUS ||
-          node.operator === TokenType.OPERATOR_MULTIPLY ||
-          node.operator === TokenType.OPERATOR_DIVIDE ||
-          node.operator === TokenType.OPERATOR_MODULO) &&
-        (typeof left !== 'number' || typeof right !== 'number') ) {
-        this.runtimeError(`Operands must be numbers for arithmetic operator '${node.operator}'. Got ${typeof left} ('${left}') and ${typeof right} ('${right}').`, node);
-        return NaN;
+    
+    const arithmeticOps = [
+        TokenType.OPERATOR_MINUS, TokenType.OPERATOR_MULTIPLY, 
+        TokenType.OPERATOR_DIVIDE, TokenType.OPERATOR_MODULO
+    ];
+    if (arithmeticOps.includes(node.operator)) {
+        if (typeof left !== 'number' || typeof right !== 'number') {
+            this.runtimeError(`Los operandos deben ser números para el operador aritmético '${node.operator}'. Se obtuvo ${typeof left} ('${left}') y ${typeof right} ('${right}').`, node);
+            return NaN;
+        }
     }
-
 
     switch (node.operator) {
-      case TokenType.OPERATOR_PLUS: // Already handled if one is string, this is for number + number
-        return (left as number) + (right as number);
+      case TokenType.OPERATOR_PLUS: 
+        if (typeof left === 'number' && typeof right === 'number') {
+            return left + right;
+        }
+        this.runtimeError(`No se puede sumar ${typeof left} ('${left}') con ${typeof right} ('${right}').`, node);
+        return NaN;
       case TokenType.OPERATOR_MINUS:
         return (left as number) - (right as number);
       case TokenType.OPERATOR_MULTIPLY:
         return (left as number) * (right as number);
       case TokenType.OPERATOR_DIVIDE:
         if (right === 0) {
-          this.runtimeError('Division by zero.', node);
+          this.runtimeError('División por cero.', node);
           return NaN;
         }
         return (left as number) / (right as number);
       case TokenType.OPERATOR_MODULO:
          if (right === 0) {
-            this.runtimeError('Modulo by zero.', node);
+            this.runtimeError('Módulo por cero.', node);
             return NaN;
         }
         return (left as number) % (right as number);
-      // Add other binary operators here (logical, relational) when implemented
       default:
-        this.runtimeError(`Unknown or unhandled binary operator '${node.operator}'.`, node);
+        this.runtimeError(`Operador binario desconocido o no manejado '${node.operator}'.`, node);
         return undefined;
     }
   }
@@ -249,20 +256,22 @@ export class Evaluator {
     let lineOutputParts: string[] = [];
     for (const expr of node.expressions) {
       const value = this.evaluateExpression(expr);
-      if (value === undefined && expr.type === 'Identifier') {
-         const idNode = expr as IdentifierNode;
-         // Check if it was truly undefined or just not in environment yet
-         if (!this.environment.has(idNode.name)) {
-            lineOutputParts.push(`[Error: Variable '${idNode.name}' no definida o sin valor asignado]`);
-         } else {
-            // It means environment.get(idNode.name) returned undefined
-            lineOutputParts.push("indefinido");
-         }
-      } else {
-        lineOutputParts.push(String(value === undefined ? "indefinido" : value));
-      }
+      lineOutputParts.push(this.formatValueForOutput(value));
     }
     this.output += lineOutputParts.join('') + '\n';
+  }
+
+  private formatValueForOutput(value: any): string {
+    if (typeof value === 'string') {
+      return value; 
+    } else if (typeof value === 'boolean') {
+      return value ? 'VERDADERO' : 'FALSO'; 
+    } else if (value === undefined) {
+      return "[indefinido]";
+    } else if (value === null) {
+      return "[nulo]"; 
+    }
+    return String(value);
   }
 
   private runtimeError(message: string, node: ASTNode | null) {
@@ -273,4 +282,3 @@ export class Evaluator {
     throw new Error(details);
   }
 }
-
