@@ -78,11 +78,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
         case TokenType.KEYWORD_CADENA:
         case TokenType.KEYWORD_VERDADERO:
         case TokenType.KEYWORD_FALSO:
-        // New keywords
         case TokenType.KEYWORD_VARIABLE:
         case TokenType.KEYWORD_CONSTANTE:
         case TokenType.KEYWORD_DESDE:
-        case TokenType.KEYWORD_HACER: // Generic Hacer
+        case TokenType.KEYWORD_HACER: 
         case TokenType.KEYWORD_CASO:
         case TokenType.KEYWORD_POR_REFERENCIA:
         case TokenType.KEYWORD_DE:
@@ -95,7 +94,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
         case TokenType.KEYWORD_FINPROCEDIMIENTO:
         case TokenType.KEYWORD_MODULO:
         case TokenType.KEYWORD_FINMODULO:
-        // Logical operators as keywords
         case TokenType.KEYWORD_LOGICAL_AND:
         case TokenType.KEYWORD_LOGICAL_OR:
         case TokenType.KEYWORD_LOGICAL_NOT:

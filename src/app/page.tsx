@@ -8,7 +8,7 @@ import OutputConsole from '@/components/pseudo-coder/output-console';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Play } from 'lucide-react';
-import { executePseudocode } from '@/lib/interpreter'; // Import the interpreter
+import { executePseudocode } from '@/lib/interpreter'; 
 
 export default function PseudoCoderPage() {
   const [code, setCode] = React.useState<string>('// Ejemplo:\n// ESCRIBIR "Hola Mundo"\n');
@@ -122,7 +122,7 @@ export default function PseudoCoderPage() {
     if (file) {
       loadFileContent(file, setCode, "Código");
     }
-    event.target.value = ''; // Reset file input
+    event.target.value = ''; 
   };
 
   const handleLoadRequirements = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,7 +130,7 @@ export default function PseudoCoderPage() {
     if (file) {
       loadFileContent(file, setRequirements, "Requerimientos");
     }
-    event.target.value = ''; // Reset file input
+    event.target.value = ''; 
   };
 
   return (
@@ -146,8 +146,8 @@ export default function PseudoCoderPage() {
         </Button>
       </header>
 
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0"> {/* min-h-0 for flex/grid children */}
-        <div className="md:col-span-2 flex flex-col min-h-0"> {/* Added min-h-0 */}
+      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0">
+        <div className="md:col-span-2 flex flex-col min-h-0"> 
           <CodeEditor
             code={code}
             setCode={setCode}
@@ -157,8 +157,8 @@ export default function PseudoCoderPage() {
           />
         </div>
 
-        <div className="flex flex-col gap-4 min-h-0"> {/* Added min-h-0 */}
-          <div className="flex-1 min-h-0"> {/* Added min-h-0 to allow child to grow */}
+        <div className="flex flex-col gap-4 min-h-0"> 
+          <div className="flex-1 min-h-0"> 
              <RequirementsDisplay
                 requirements={requirements}
                 setRequirements={setRequirements}
@@ -166,7 +166,7 @@ export default function PseudoCoderPage() {
                 onLoad={handleLoadRequirements}
               />
           </div>
-          <div className="flex-1 min-h-0"> {/* Added min-h-0 to allow child to grow */}
+          <div className="flex-1 min-h-0"> 
             <OutputConsole output={output} />
           </div>
         </div>
