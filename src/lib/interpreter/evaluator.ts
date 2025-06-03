@@ -35,7 +35,8 @@ export class Evaluator {
         }
       }
     } catch (error: any) {
-        this.output += `Runtime Error: ${error.message}\n`;
+        // Runtime errors from the evaluator itself will be added here
+        this.output += `Error en tiempo de ejecución: ${error.message}\n`;
     }
     return this.output.trimEnd();
   }
@@ -60,11 +61,12 @@ export class Evaluator {
         // Already handled in the initial pass.
         break;
       case 'MientrasStatement':
-        this.output += `// INFO: Estructura 'Mientras' reconocida por el parser. La lógica de ejecución del bucle aún no está implementada en el evaluador.\n`;
-        // this.evaluateMientrasStatement(statement as MientrasStatementNode); // Logic to be implemented
+        // this.output += `// INFO: Estructura 'Mientras' reconocida por el parser. La lógica de ejecución del bucle aún no está implementada en el evaluador.\n`;
+        // For now, Mientras loops are parsed but not executed.
+        // Execution logic will be added in a future step.
         break;
       default:
-        this.runtimeError(`Unknown or unhandled statement type '${(statement as ASTNode)?.type}'.`, statement);
+        this.runtimeError(`Sentencia desconocida o no manejada '${(statement as ASTNode)?.type}'.`, statement);
         break;
     }
   }
@@ -81,6 +83,8 @@ export class Evaluator {
         } else if (typeLower === 'caracter' || typeLower === 'texto' || typeLower === 'cadena') {
              this.environment.set(id.name, "");
         } else {
+            // For custom types or uninitialized, PSeInt might behave differently.
+            // For simplicity, we can set to undefined or a specific initial value.
             this.environment.set(id.name, undefined);
         }
       }
@@ -90,65 +94,62 @@ export class Evaluator {
   private evaluateAssignmentStatement(node: AssignmentStatementNode): void {
     const value = this.evaluateExpression(node.expression);
     this.environment.set(node.identifier.name, value);
-    this.output += `> ASIGNAR: Variable '${node.identifier.name}' toma el valor: ${this.formatValueForOutput(value)}\n`;
+    // Removed: this.output += `> ASIGNAR: Variable '${node.identifier.name}' toma el valor: ${this.formatValueForOutput(value)}\n`;
   }
 
   private evaluateReadStatement(node: ReadStatementNode): void {
     for (const id of node.identifiers) {
       let rawInputValue: string | null = null;
       const variableName = id.name;
-      let inputSource = "";
-
-      this.output += `Ejecutando LEER para la variable: '${variableName}'.\n`;
+      // Removed: this.output += `Ejecutando LEER para la variable: '${variableName}'.\n`;
 
       if (this.preSuppliedInputs && this.currentInputIndex < this.preSuppliedInputs.length) {
         rawInputValue = this.preSuppliedInputs[this.currentInputIndex];
         this.currentInputIndex++;
-        inputSource = "Input Console";
-        this.output += `  Fuente: ${inputSource}, valor provisto: "${rawInputValue}" (para '${variableName}')\n`;
+        // Removed: this.output += `  Fuente: Input Console, valor provisto: "${rawInputValue}" (para '${variableName}')\n`;
       } else {
-        inputSource = "Prompt Interactivo";
-        this.output += `  Fuente: ${inputSource}. Esperando entrada del usuario para '${variableName}'...\n`;
+        // Removed: this.output += `  Fuente: Prompt Interactivo. Esperando entrada del usuario para '${variableName}'...\n`;
         rawInputValue = window.prompt(`Ingrese valor para ${variableName}:`);
-        if (rawInputValue !== null) {
-          this.output += `  Usuario ingresó (desde ${inputSource}): "${rawInputValue}" (para '${variableName}')\n`;
-        } else {
-          this.output += `  Entrada cancelada por el usuario para '${variableName}' (desde ${inputSource}).\n`;
-        }
+        // if (rawInputValue !== null) {
+        // Removed: this.output += `  Usuario ingresó (desde Prompt Interactivo): "${rawInputValue}" (para '${variableName}')\n`;
+        // } else {
+        // Removed: this.output += `  Entrada cancelada por el usuario para '${variableName}' (desde Prompt Interactivo).\n`;
+        // }
       }
 
       if (rawInputValue === null) {
-        this.output += `Advertencia: Entrada cancelada o no proporcionada para '${variableName}'.`;
-        if (this.environment.has(variableName)) {
-           const currentValue = this.environment.get(variableName);
-           this.output += ` La variable '${variableName}' conserva su valor anterior: ${this.formatValueForOutput(currentValue)}.\n`;
-        } else {
-          this.environment.set(variableName, undefined); 
-          this.output += ` La variable '${variableName}' no tenía valor previo y queda indefinida/sin inicializar.\n`;
+        // Handle cancelled prompt: variable keeps its value or becomes undefined if not previously set.
+        // Removed: this.output += `Advertencia: Entrada cancelada o no proporcionada para '${variableName}'.`;
+        if (!this.environment.has(variableName)) {
+           this.environment.set(variableName, undefined); 
+           // Removed: this.output += ` La variable '${variableName}' no tenía valor previo y queda indefinida/sin inicializar.\n`;
         }
+        // else { const currentValue = this.environment.get(variableName); Removed: this.output += ` La variable '${variableName}' conserva su valor anterior: ${this.formatValueForOutput(currentValue)}.\n`; }
         continue; 
       }
 
       const trimmedInput = rawInputValue.trim();
       let assignedValue: any;
-      let typeOfValue: string;
+      // Removed: let typeOfValue: string;
 
       const numInput = parseFloat(trimmedInput);
-      if (!isNaN(numInput) && String(numInput) === trimmedInput) { 
+      if (!isNaN(numInput) && String(numInput) === trimmedInput.replace(',', '.')) { // PSeInt might use comma for decimals
         assignedValue = numInput;
-        typeOfValue = 'Número';
+        // Removed: typeOfValue = 'Número';
       } else if (trimmedInput.toLowerCase() === "verdadero") {
         assignedValue = true;
-        typeOfValue = 'Lógico';
+        // Removed: typeOfValue = 'Lógico';
       } else if (trimmedInput.toLowerCase() === "falso") {
         assignedValue = false;
-        typeOfValue = 'Lógico';
+        // Removed: typeOfValue = 'Lógico';
       } else {
+        // Treat as string if it's not clearly a number or boolean
+        // PSeInt's string literals are usually quoted, but Leer reads raw input.
         assignedValue = rawInputValue; 
-        typeOfValue = 'Texto';
+        // Removed: typeOfValue = 'Texto';
       }
       this.environment.set(variableName, assignedValue);
-      this.output += `> LEER ASIGNADO: Variable '${variableName}' (entrada original: "${rawInputValue}") toma el valor ${this.formatValueForOutput(assignedValue)} (interpretado como ${typeOfValue})\n`;
+      // Removed: this.output += `> LEER ASIGNADO: Variable '${variableName}' (entrada original: "${rawInputValue}") toma el valor ${this.formatValueForOutput(assignedValue)} (interpretado como ${typeOfValue})\n`;
     }
   }
 
@@ -177,11 +178,16 @@ export class Evaluator {
         if (this.environment.has(varName)) {
           const value = this.environment.get(varName);
           if (value === undefined) {
-             this.output += `Advertencia: Variable '${varName}' usada pero su valor es indefinido. Puede causar un error o comportamiento inesperado.\n`;
+             // Removed: this.output += `Advertencia: Variable '${varName}' usada pero su valor es indefinido. Puede causar un error o comportamiento inesperado.\n`;
           }
           return value;
         }
-        this.output += `Advertencia: Variable '${varName}' usada sin valor asignado previamente (o sin Definir explícitamente un valor inicial). Puede causar un error o comportamiento inesperado.\n`;
+        // Removed: this.output += `Advertencia: Variable '${varName}' usada sin valor asignado previamente (o sin Definir explícitamente un valor inicial). Puede causar un error o comportamiento inesperado.\n`;
+        // In a stricter interpreter, this should likely be a runtime error.
+        // For PSeInt's flexibility, it often defaults to 0 for numbers, "" for strings, false for booleans if not defined.
+        // However, our DefineStatement handles initialization, so reaching here for an unknown var is more problematic.
+        // For now, returning undefined which might lead to errors in operations.
+        this.runtimeError(`Variable '${varName}' no definida.`, expression);
         return undefined; 
       case 'BinaryExpression':
         return this.evaluateBinaryExpression(expression as BinaryExpressionNode);
@@ -212,9 +218,10 @@ export class Evaluator {
         }
         message += ` (L: ${this.formatValueForOutput(left)}, R: ${this.formatValueForOutput(right)}). Asegúrese de que las variables estén inicializadas.`;
         this.runtimeError(message, node);
-        return NaN; 
+        return NaN; // Return NaN for undefined arithmetic results
     }
     
+    // Check for numeric types for arithmetic operations
     const arithmeticOps = [
         TokenType.OPERATOR_MINUS, TokenType.OPERATOR_MULTIPLY, 
         TokenType.OPERATOR_DIVIDE, TokenType.OPERATOR_MODULO
@@ -231,6 +238,8 @@ export class Evaluator {
         if (typeof left === 'number' && typeof right === 'number') {
             return left + right;
         }
+        // String concatenation already handled above.
+        // If we reach here, it's an invalid + operation (e.g. boolean + number)
         this.runtimeError(`No se puede sumar ${typeof left} ('${left}') con ${typeof right} ('${right}').`, node);
         return NaN;
       case TokenType.OPERATOR_MINUS:
@@ -249,6 +258,7 @@ export class Evaluator {
             return NaN;
         }
         return (left as number) % (right as number);
+      // TODO: Add comparison and logical operators
       default:
         this.runtimeError(`Operador binario desconocido o no manejado '${node.operator}'.`, node);
         return undefined;
@@ -270,7 +280,7 @@ export class Evaluator {
     } else if (typeof value === 'boolean') {
       return value ? 'VERDADERO' : 'FALSO'; 
     } else if (value === undefined) {
-      return "[indefinido]";
+      return "[indefinido]"; // Should ideally not be directly output by 'Escribir' from an uninitialized var
     } else if (value === null) {
       return "[nulo]"; 
     }
@@ -280,8 +290,15 @@ export class Evaluator {
   private runtimeError(message: string, node: ASTNode | null) {
     let details = message;
     if (node && node.line !== undefined && node.column !== undefined) {
+      // Construct a more PSeInt-like error message if possible
       details = `Error en linea ${node.line}, columna ${node.column}: ${message}`;
     }
-    throw new Error(details);
+    // Instead of throwing, append to output for now, or have a separate error stream
+    // throw new Error(details);
+    // For now, to make it visible, we'll append to output, but this should be refined
+    this.output += `${details}\n`; 
+    // And to stop further execution on this path to prevent cascading errors
+    throw new Error(details); // This will be caught by the top-level try-catch in evaluate()
   }
 }
+
