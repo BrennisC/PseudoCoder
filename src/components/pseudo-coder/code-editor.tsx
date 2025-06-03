@@ -212,27 +212,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
 
   return (
     <Card className="flex flex-col flex-grow shadow-lg rounded-lg overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between p-4 border-b shrink-0">
-        <CardTitle className="text-xl font-headline">Code Editor</CardTitle>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleLoadClick} aria-label="Load code from file">
-            <UploadCloud className="mr-2 h-4 w-4" /> Load
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={onLoad}
-            style={{ display: 'none' }}
-            accept=".txt,.psc,.md"
-          />
-          <Button variant="outline" size="sm" onClick={onSave} aria-label="Save code to file">
-            <Save className="mr-2 h-4 w-4" /> Save
-          </Button>
-          <Button variant="destructive" size="sm" onClick={onClear} aria-label="Clear editor content">
-            <Trash2 className="mr-2 h-4 w-4" /> Clear
-          </Button>
-        </div>
-      </CardHeader>
       <CardContent className="flex-grow flex p-0 bg-background"> {/* Ensure no overflow-auto here */}
         <div
           ref={lineNumbersRef}

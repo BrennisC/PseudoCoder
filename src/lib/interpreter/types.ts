@@ -25,7 +25,7 @@ export enum TokenType {
   KEYWORD_HASTAQUE = 'KEYWORD_HASTAQUE',
   KEYWORD_PARA = 'KEYWORD_PARA',
   KEYWORD_HASTA = 'KEYWORD_HASTA',
-  KEYWORD_CON = 'KEYWORD_CON', // For 'CON PASO'
+  KEYWORD_CON = 'KEYWORD_CON', 
   KEYWORD_PASO = 'KEYWORD_PASO',
   KEYWORD_FINPARA = 'KEYWORD_FINPARA',
   KEYWORD_FUNCION = 'KEYWORD_FUNCION',
@@ -43,16 +43,15 @@ export enum TokenType {
   KEYWORD_VERDADERO = 'KEYWORD_VERDADERO',
   KEYWORD_FALSO = 'KEYWORD_FALSO',
 
-  // New keywords from user list
   KEYWORD_VARIABLE = 'KEYWORD_VARIABLE',
   KEYWORD_CONSTANTE = 'KEYWORD_CONSTANTE',
   KEYWORD_DESDE = 'KEYWORD_DESDE',
-  KEYWORD_HACER = 'KEYWORD_HACER', // Generic 'Hacer' (e.g., PARA ... HACER)
+  KEYWORD_HACER = 'KEYWORD_HACER', 
   KEYWORD_CASO = 'KEYWORD_CASO',
-  KEYWORD_POR_REFERENCIA = 'KEYWORD_POR_REFERENCIA', // For "Por Referencia"
+  KEYWORD_POR_REFERENCIA = 'KEYWORD_POR_REFERENCIA', 
   KEYWORD_DE = 'KEYWORD_DE',
   KEYWORD_RETORNAR = 'KEYWORD_RETORNAR',
-  KEYWORD_FIN = 'KEYWORD_FIN', // Generic "Fin"
+  KEYWORD_FIN = 'KEYWORD_FIN', 
   KEYWORD_TIPO = 'KEYWORD_TIPO',
   KEYWORD_REGISTRO = 'KEYWORD_REGISTRO',
   KEYWORD_ARREGLO = 'KEYWORD_ARREGLO',
@@ -61,10 +60,9 @@ export enum TokenType {
   KEYWORD_MODULO = 'KEYWORD_MODULO',
   KEYWORD_FINMODULO = 'KEYWORD_FINMODULO',
 
-  // Logical operators as keywords for highlighting
-  KEYWORD_LOGICAL_AND = 'KEYWORD_LOGICAL_AND', // Y, &, &&
-  KEYWORD_LOGICAL_OR = 'KEYWORD_LOGICAL_OR',   // O, |, ||
-  KEYWORD_LOGICAL_NOT = 'KEYWORD_LOGICAL_NOT', // NO, !
+  KEYWORD_LOGICAL_AND = 'KEYWORD_LOGICAL_AND', 
+  KEYWORD_LOGICAL_OR = 'KEYWORD_LOGICAL_OR',   
+  KEYWORD_LOGICAL_NOT = 'KEYWORD_LOGICAL_NOT', 
 
   IDENTIFIER = 'IDENTIFIER',
   STRING_LITERAL = 'STRING_LITERAL', 
@@ -110,6 +108,8 @@ export interface Token {
 
 export interface ASTNode {
   type: string;
+  line?: number; // Optional line number for error reporting
+  column?: number; // Optional column number for error reporting
 }
 
 export interface StringLiteralNode extends ASTNode {
@@ -122,27 +122,67 @@ export interface NumberLiteralNode extends ASTNode {
   value: number;
 }
 
+export interface BooleanLiteralNode extends ASTNode {
+  type: 'BooleanLiteral';
+  value: boolean;
+}
+
 export interface IdentifierNode extends ASTNode {
   type: 'Identifier';
   name: string;
 }
 
-export type ExpressionNode = StringLiteralNode | NumberLiteralNode | IdentifierNode;
+export interface BinaryExpressionNode extends ASTNode {
+  type: 'BinaryExpression';
+  left: ExpressionNode;
+  operator: TokenType; // e.g., TokenType.OPERATOR_PLUS
+  right: ExpressionNode;
+}
+
+export type ExpressionNode = 
+  | StringLiteralNode 
+  | NumberLiteralNode 
+  | IdentifierNode
+  | BooleanLiteralNode
+  | BinaryExpressionNode;
 
 export interface WriteStatementNode extends ASTNode {
   type: 'WriteStatement';
   expressions: ExpressionNode[]; 
 }
 
+export interface ReadStatementNode extends ASTNode {
+  type: 'ReadStatement';
+  identifiers: IdentifierNode[];
+}
+
+export interface AssignmentStatementNode extends ASTNode {
+  type: 'AssignmentStatement';
+  identifier: IdentifierNode;
+  expression: ExpressionNode;
+}
+
+export interface DefineStatementNode extends ASTNode { // Basic structure for now
+  type: 'DefineStatement';
+  identifiers: IdentifierNode[];
+  dataType: IdentifierNode; // Or a more specific type later
+}
+
+
 export interface ProcesoBlockNode extends ASTNode {
-  type: 'ProcesoBlock'; // Specific type for Proceso/Algoritmo blocks
+  type: 'ProcesoBlock'; 
   name: IdentifierNode;
   body: StatementNode[];
 }
 
-export type StatementNode = WriteStatementNode | ProcesoBlockNode; 
+export type StatementNode = 
+  | WriteStatementNode 
+  | ProcesoBlockNode
+  | ReadStatementNode
+  | AssignmentStatementNode
+  | DefineStatementNode; 
 
 export interface ProgramNode extends ASTNode {
   type: 'Program';
-  body: StatementNode[];
+  body: StatementNode[]; // A program can be a sequence of Proceso/Algoritmo blocks or other top-level statements (though PSeInt usually has one main block)
 }
