@@ -7,6 +7,8 @@ const KEYWORDS: Record<string, TokenType> = {
   'finalgoritmo': TokenType.KEYWORD_FINALGORITMO,
   'proceso': TokenType.KEYWORD_PROCESO,
   'finproceso': TokenType.KEYWORD_FINPROCESO,
+  'subproceso': TokenType.KEYWORD_SUBPROCESO,
+  'finsubproceso': TokenType.KEYWORD_FINSUBPROCESO,
   'definir': TokenType.KEYWORD_DEFINIR,
   'como': TokenType.KEYWORD_COMO,
   'leer': TokenType.KEYWORD_LEER,

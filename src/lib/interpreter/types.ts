@@ -4,6 +4,8 @@ export enum TokenType {
   KEYWORD_FINALGORITMO = 'KEYWORD_FINALGORITMO',
   KEYWORD_PROCESO = 'KEYWORD_PROCESO',
   KEYWORD_FINPROCESO = 'KEYWORD_FINPROCESO',
+  KEYWORD_SUBPROCESO = 'KEYWORD_SUBPROCESO',
+  KEYWORD_FINSUBPROCESO = 'KEYWORD_FINSUBPROCESO',
   KEYWORD_DEFINIR = 'KEYWORD_DEFINIR',
   KEYWORD_COMO = 'KEYWORD_COMO',
   KEYWORD_LEER = 'KEYWORD_LEER',
@@ -112,6 +114,46 @@ export interface WriteStatementNode extends ASTNode {
   type: 'WriteStatement';
   expressions: ExpressionNode[]; 
 }
+
+// Future AST Node Types (examples, not yet implemented in parser/evaluator)
+// export interface ReadStatementNode extends ASTNode {
+//   type: 'ReadStatement';
+//   variable: IdentifierNode;
+// }
+
+// export interface AssignmentStatementNode extends ASTNode {
+//   type: 'AssignmentStatement';
+//   assignee: IdentifierNode; // or ArrayAccessorNode
+//   value: ExpressionNode;
+// }
+
+// export interface IfStatementNode extends ASTNode {
+//   type: 'IfStatement';
+//   condition: ExpressionNode;
+//   thenBranch: StatementNode[];
+//   elseBranch?: StatementNode[];
+// }
+
+// export interface WhileStatementNode extends ASTNode {
+//   type: 'WhileStatement';
+//   condition: ExpressionNode;
+//   body: StatementNode[];
+// }
+
+// export interface FunctionDeclarationNode extends ASTNode {
+//  type: 'FunctionDeclaration';
+//  name: IdentifierNode;
+//  params: IdentifierNode[];
+//  returnType?: string; // PSeInt is loosely typed, but sometimes specified
+//  body: StatementNode[];
+// }
+
+// export interface ProcessNode extends ASTNode {
+//   type: 'ProcessNode';
+//   name: IdentifierNode;
+//   body: StatementNode[];
+// }
+
 
 export type StatementNode = WriteStatementNode; // Will expand with IfStatement, WhileStatement, etc.
 

@@ -43,6 +43,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
         case TokenType.KEYWORD_FINALGORITMO:
         case TokenType.KEYWORD_PROCESO:
         case TokenType.KEYWORD_FINPROCESO:
+        case TokenType.KEYWORD_SUBPROCESO:
+        case TokenType.KEYWORD_FINSUBPROCESO:
         case TokenType.KEYWORD_DEFINIR:
         case TokenType.KEYWORD_COMO:
         case TokenType.KEYWORD_LEER:
