@@ -156,10 +156,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
     return result;
   };
 
-
   return (
-    <Card className="flex flex-col flex-grow shadow-lg rounded-lg">
-      <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
+    <Card className="flex flex-col flex-grow shadow-lg rounded-lg overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between p-4 border-b shrink-0">
         <CardTitle className="text-xl font-headline">Code Editor</CardTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleLoadClick} aria-label="Load code from file">
@@ -180,8 +179,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-0 relative"> 
-        <div className="absolute inset-0 overflow-auto"> 
+      <CardContent className="flex-grow p-0 overflow-auto"> 
           <Editor
             value={code}
             onValueChange={setCode}
@@ -196,10 +194,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
               minHeight: '100%', 
               caretColor: 'var(--foreground)', 
             }}
-            className="h-full w-full bg-background text-foreground" 
+            className="w-full bg-background text-foreground" 
             aria-label="Pseudocode editor"
           />
-        </div>
       </CardContent>
     </Card>
   );
