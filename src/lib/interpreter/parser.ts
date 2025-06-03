@@ -1,5 +1,5 @@
 
-import type { Token, ProgramNode, StatementNode, WriteStatementNode, StringLiteralNode, ExpressionNode } from './types';
+import type { Token, ProgramNode, StatementNode, WriteStatementNode, StringLiteralNode, NumberLiteralNode, IdentifierNode, ExpressionNode, ASTNode } from './types';
 import { TokenType } from './types';
 
 export class Parser {
@@ -12,53 +12,88 @@ export class Parser {
     const statements: StatementNode[] = [];
 
     while (!this.isAtEnd()) {
+      this.skipIgnoredTokens(); 
+      if (this.isAtEnd()) break;
+
       const statement = this.parseStatement();
       if (statement) {
         statements.push(statement);
-      } else if (!this.isAtEnd()){
-        // If parseStatement returns null and we are not at end, it means there's an error or unhandled token.
-        // Skip to next potential statement start or handle error. For now, simple skip.
-        this.advance(); 
+      } else {
+        const token = this.peek();
+        if (token.type !== TokenType.EOF) { // Avoid error on trailing whitespace/comments
+            throw new Error(`Parser Error (line ${token.line}, col ${token.column}): Unexpected token '${token.value}' (type: ${token.type}) when expecting a statement.`);
+        }
       }
     }
     return { type: 'Program', body: statements };
   }
 
+  private skipIgnoredTokens(): void {
+    while (!this.isAtEnd() &&
+           (this.check(TokenType.WHITESPACE) ||
+            this.check(TokenType.NEWLINE) ||
+            this.check(TokenType.COMMENT))) {
+      this.advance();
+    }
+  }
+
   private parseStatement(): StatementNode | null {
-    if (this.match(TokenType.KEYWORD_ESCRIBIR)) {
+    const currentToken = this.peek();
+    if (currentToken.type === TokenType.KEYWORD_ESCRIBIR) {
+      this.advance(); // Consume KEYWORD_ESCRIBIR
       return this.parseWriteStatement();
     }
     // Future: Add other statement types like IF, WHILE, ASSIGNMENT etc.
-    // If no statement matches, and it's not EOF, it might be an error or an empty line.
-    // For simplicity, we'll return null, and the main loop will advance.
+    return null; 
+  }
+  
+  private parseExpression(): ExpressionNode | null {
+    this.skipIgnoredTokens();
+    const token = this.peek();
+
+    if (token.type === TokenType.STRING_LITERAL) {
+      this.advance();
+      return { type: 'StringLiteral', value: token.value.slice(1, -1) } as StringLiteralNode;
+    } else if (token.type === TokenType.NUMBER_LITERAL) {
+      this.advance();
+      return { type: 'NumberLiteral', value: parseFloat(token.value) } as NumberLiteralNode;
+    } else if (token.type === TokenType.IDENTIFIER) {
+      this.advance();
+      return { type: 'Identifier', name: token.value } as IdentifierNode;
+    }
+    // Future: boolean literals, function calls, binary operations etc.
     return null;
   }
 
   private parseWriteStatement(): WriteStatementNode {
     const expressions: ExpressionNode[] = [];
-    // PSeInt's ESCRIBIR takes one or more expressions, comma-separated.
-    // For now, we only support one string literal.
-    if (this.check(TokenType.STRING_LITERAL)) {
-      const token = this.advance();
-      expressions.push({ type: 'StringLiteral', value: token.value } as StringLiteralNode);
-    } else {
-      throw new Error(`Parser Error (line ${this.peek().line}, col ${this.peek().column}): Expected a string literal after ESCRIBIR.`);
+    
+    const firstExpr = this.parseExpression();
+    if (!firstExpr) {
+      const token = this.previous().type === TokenType.KEYWORD_ESCRIBIR ? this.peek() : this.previous();
+      throw new Error(`Parser Error (line ${token.line}, col ${token.column}): Expected an expression after ESCRIBIR.`);
     }
+    expressions.push(firstExpr);
 
-    // Future: loop for comma and more expressions
-    // while (this.match(TokenType.COMMA)) { ... }
+    this.skipIgnoredTokens();
+    while (this.check(TokenType.COMMA)) {
+      this.advance(); // Consume comma
+      const nextExpr = this.parseExpression();
+      if (!nextExpr) {
+        const token = this.previous().type === TokenType.COMMA ? this.peek() : this.previous();
+        throw new Error(`Parser Error (line ${token.line}, col ${token.column}): Expected an expression after comma in ESCRIBIR statement.`);
+      }
+      expressions.push(nextExpr);
+      this.skipIgnoredTokens();
+    }
+    
+    // PSeInt typically doesn't require semicolons, but we can allow them optionally.
+    this.skipIgnoredTokens();
+    if (this.check(TokenType.SEMICOLON)) {
+        this.advance(); // Consume semicolon
+    }
 
     return { type: 'WriteStatement', expressions };
-  }
-
-  private match(...types: TokenType[]): boolean {
-    for (const type of types) {
-      if (this.check(type)) {
-        this.advance();
-        return true;
-      }
-    }
-    return false;
   }
 
   private check(type: TokenType): boolean {
@@ -72,10 +107,16 @@ export class Parser {
   }
 
   private isAtEnd(): boolean {
+    // Consider EOF as the end, but also if current index is out of bounds after skipping.
+    if (this.current >= this.tokens.length) return true; 
     return this.peek().type === TokenType.EOF;
   }
 
   private peek(): Token {
+    if (this.current >= this.tokens.length) {
+        // Should ideally not happen if isAtEnd is checked correctly, but as a safeguard:
+        return this.tokens[this.tokens.length -1]; // Return EOF token
+    }
     return this.tokens[this.current];
   }
 

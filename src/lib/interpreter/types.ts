@@ -42,7 +42,7 @@ export enum TokenType {
   KEYWORD_FALSO = 'KEYWORD_FALSO',
 
   IDENTIFIER = 'IDENTIFIER',
-  STRING_LITERAL = 'STRING_LITERAL',
+  STRING_LITERAL = 'STRING_LITERAL', // Value includes quotes
   NUMBER_LITERAL = 'NUMBER_LITERAL',
   
   OPERATOR_ASSIGN = 'OPERATOR_ASSIGN', // <- or =
@@ -93,11 +93,20 @@ export interface ASTNode {
 
 export interface StringLiteralNode extends ASTNode {
   type: 'StringLiteral';
-  value: string;
+  value: string; // Content of the string, WITHOUT surrounding quotes
 }
 
-// For now, an expression is just a string literal
-export type ExpressionNode = StringLiteralNode;
+export interface NumberLiteralNode extends ASTNode {
+  type: 'NumberLiteral';
+  value: number;
+}
+
+export interface IdentifierNode extends ASTNode {
+  type: 'Identifier';
+  name: string;
+}
+
+export type ExpressionNode = StringLiteralNode | NumberLiteralNode | IdentifierNode;
 
 export interface WriteStatementNode extends ASTNode {
   type: 'WriteStatement';
