@@ -108,8 +108,8 @@ export interface Token {
 
 export interface ASTNode {
   type: string;
-  line?: number; // Optional line number for error reporting
-  column?: number; // Optional column number for error reporting
+  line?: number; 
+  column?: number; 
 }
 
 export interface StringLiteralNode extends ASTNode {
@@ -135,7 +135,7 @@ export interface IdentifierNode extends ASTNode {
 export interface BinaryExpressionNode extends ASTNode {
   type: 'BinaryExpression';
   left: ExpressionNode;
-  operator: TokenType; // e.g., TokenType.OPERATOR_PLUS
+  operator: TokenType; 
   right: ExpressionNode;
 }
 
@@ -162,12 +162,17 @@ export interface AssignmentStatementNode extends ASTNode {
   expression: ExpressionNode;
 }
 
-export interface DefineStatementNode extends ASTNode { // Basic structure for now
+export interface DefineStatementNode extends ASTNode { 
   type: 'DefineStatement';
   identifiers: IdentifierNode[];
-  dataType: IdentifierNode; // Or a more specific type later
+  dataType: IdentifierNode; 
 }
 
+export interface MientrasStatementNode extends ASTNode {
+  type: 'MientrasStatement';
+  condition: ExpressionNode;
+  body: StatementNode[];
+}
 
 export interface ProcesoBlockNode extends ASTNode {
   type: 'ProcesoBlock'; 
@@ -180,9 +185,10 @@ export type StatementNode =
   | ProcesoBlockNode
   | ReadStatementNode
   | AssignmentStatementNode
-  | DefineStatementNode; 
+  | DefineStatementNode
+  | MientrasStatementNode; 
 
 export interface ProgramNode extends ASTNode {
   type: 'Program';
-  body: StatementNode[]; // A program can be a sequence of Proceso/Algoritmo blocks or other top-level statements (though PSeInt usually has one main block)
+  body: StatementNode[]; 
 }

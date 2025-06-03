@@ -1,5 +1,5 @@
 
-import type { Token, ProgramNode, StatementNode, WriteStatementNode, StringLiteralNode, NumberLiteralNode, IdentifierNode, ExpressionNode, ProcesoBlockNode, ReadStatementNode, AssignmentStatementNode, BooleanLiteralNode, BinaryExpressionNode, DefineStatementNode } from './types';
+import type { Token, ProgramNode, StatementNode, WriteStatementNode, StringLiteralNode, NumberLiteralNode, IdentifierNode, ExpressionNode, ProcesoBlockNode, ReadStatementNode, AssignmentStatementNode, BooleanLiteralNode, BinaryExpressionNode, DefineStatementNode, MientrasStatementNode } from './types';
 import { TokenType } from './types';
 
 export class Parser {
@@ -11,19 +11,14 @@ export class Parser {
     this.current = 0;
     const statements: StatementNode[] = [];
 
-    // PSeInt programs typically start with Proceso or Algoritmo
     this.skipIgnoredTokens();
     if (this.check(TokenType.KEYWORD_PROCESO) || this.check(TokenType.KEYWORD_ALGORITMO)) {
       statements.push(this.parseProcesoOrAlgoritmoBlock());
     } else if (!this.isAtEnd()) {
-      // Allow other statements if not starting with Proceso/Algoritmo for simpler examples,
-      // but a full PSeInt program requires it.
-      // For now, to fix the immediate error, we expect Proceso/Algoritmo first.
       const token = this.peek();
       throw new Error(`Parser Error (line ${token.line}, col ${token.column}): Program must start with 'Proceso' or 'Algoritmo'. Found '${token.value}'.`);
     }
     
-    // Check for any trailing tokens that are not EOF after the main block
     this.skipIgnoredTokens();
     if (!this.isAtEnd()) {
         const token = this.peek();
@@ -52,18 +47,18 @@ export class Parser {
       return this.parseReadStatement();
     } else if (currentToken.type === TokenType.KEYWORD_DEFINIR) {
       return this.parseDefineStatement();
+    } else if (currentToken.type === TokenType.KEYWORD_MIENTRAS) {
+      return this.parseMientrasStatement();
     } else if (currentToken.type === TokenType.IDENTIFIER && this.peekNext()?.type === TokenType.OPERATOR_ASSIGN) {
-      const identifierToken = this.advance(); // Consume IDENTIFIER
+      const identifierToken = this.advance(); 
       const identifierNode: IdentifierNode = { type: 'Identifier', name: identifierToken.value, line: identifierToken.line, column: identifierToken.column };
       return this.parseAssignmentStatement(identifierNode);
     }
-    // Add parsing for other statements here: Si, Mientras, Para, etc.
-
     return null; 
   }
 
   private parseDefineStatement(): DefineStatementNode {
-    const defineToken = this.advance(); // Consume DEFINIR
+    const defineToken = this.advance(); 
     const identifiers: IdentifierNode[] = [];
     
     do {
@@ -77,13 +72,11 @@ export class Parser {
     this.consume(TokenType.KEYWORD_COMO, "Expected 'Como' in 'Definir' statement.");
     
     this.skipIgnoredTokens();
-    // For now, treat data type as an identifier. Later, this could be more specific.
     const dataTypeToken = this.consume(TokenType.IDENTIFIER, "Expected data type after 'Como'."); 
     const dataTypeNode: IdentifierNode = { type: 'Identifier', name: dataTypeToken.value, line: dataTypeToken.line, column: dataTypeToken.column };
 
     this.skipIgnoredTokens();
     if (this.match(TokenType.SEMICOLON)) {
-        // Optional semicolon
     }
     return { type: 'DefineStatement', identifiers, dataType: dataTypeNode, line: defineToken.line, column: defineToken.column };
   }
@@ -96,13 +89,12 @@ export class Parser {
     }
     this.skipIgnoredTokens();
     if (this.match(TokenType.SEMICOLON)) {
-        // Optional semicolon
     }
     return { type: 'AssignmentStatement', identifier, expression, line: identifier.line, column: identifier.column };
   }
 
   private parseReadStatement(): ReadStatementNode {
-    const readToken = this.advance(); // Consume LEER
+    const readToken = this.advance(); 
     const identifiers: IdentifierNode[] = [];
     
     do {
@@ -114,10 +106,52 @@ export class Parser {
 
     this.skipIgnoredTokens();
     if (this.match(TokenType.SEMICOLON)) {
-        // Optional semicolon
     }
     return { type: 'ReadStatement', identifiers, line: readToken.line, column: readToken.column };
   }
+
+  private parseMientrasStatement(): MientrasStatementNode {
+    const mientrasToken = this.advance(); // Consume MIENTRAS
+    
+    this.skipIgnoredTokens();
+    const condition = this.parseExpression();
+    if (!condition) {
+      throw new Error(`Parser Error (line ${mientrasToken.line}, col ${mientrasToken.column + mientrasToken.value.length}): Expected a condition after 'Mientras'.`);
+    }
+
+    this.skipIgnoredTokens();
+    this.consume(TokenType.KEYWORD_HACER_MIENTRAS, "Expected 'Hacer' after 'Mientras <condicion>'.");
+
+    const body: StatementNode[] = [];
+    this.skipIgnoredTokens();
+
+    while (!this.isAtEnd() && !this.check(TokenType.KEYWORD_FINMIENTRAS)) {
+      const statement = this.parseStatement();
+      if (statement) {
+        body.push(statement);
+      } else {
+        this.skipIgnoredTokens();
+        if (this.isAtEnd() || this.check(TokenType.KEYWORD_FINMIENTRAS)) {
+          break;
+        }
+        const nextToken = this.peek();
+        if (nextToken.type !== TokenType.EOF && nextToken.type !== TokenType.WHITESPACE && nextToken.type !== TokenType.NEWLINE && nextToken.type !== TokenType.COMMENT) {
+          throw new Error(`Parser Error (line ${nextToken.line}, col ${nextToken.column}): Unexpected token '${nextToken.value}' (type: ${nextToken.type}) inside 'Mientras' block. Expected a statement or 'FinMientras'.`);
+        }
+        if (!this.isAtEnd()) this.advance();
+      }
+      this.skipIgnoredTokens();
+    }
+
+    if (this.isAtEnd() && !this.check(TokenType.KEYWORD_FINMIENTRAS)) {
+      throw new Error(`Parser Error (line ${mientrasToken.line}, col ${mientrasToken.column}): Unexpected end of input. Expected 'FinMientras'.`);
+    }
+
+    this.consume(TokenType.KEYWORD_FINMIENTRAS, "Expected 'FinMientras'.");
+
+    return { type: 'MientrasStatement', condition, body, line: mientrasToken.line, column: mientrasToken.column };
+  }
+
 
   private parseExpression(): ExpressionNode | null {
     return this.parseAdditiveExpression();
@@ -183,12 +217,11 @@ export class Parser {
       this.consume(TokenType.RPAREN, "Expected ')' after expression.");
       return expr;
     }
-    // Allow expressions to be null if no primary expression found (e.g. end of input)
     return null;
   }
 
   private parseWriteStatement(): WriteStatementNode {
-    const writeToken = this.advance(); // Consume KEYWORD_ESCRIBIR
+    const writeToken = this.advance(); 
     const expressions: ExpressionNode[] = [];
     
     const firstExpr = this.parseExpression();
@@ -200,7 +233,6 @@ export class Parser {
 
     this.skipIgnoredTokens();
     while (this.match(TokenType.COMMA)) {
-      // this.advance(); // Consume comma - match already does this
       const nextExpr = this.parseExpression();
       if (!nextExpr) {
         const token = this.previous().type === TokenType.COMMA ? this.peek() : this.previous();
@@ -212,14 +244,13 @@ export class Parser {
     
     this.skipIgnoredTokens();
     if (this.match(TokenType.SEMICOLON)) {
-        // Optional semicolon
     }
 
     return { type: 'WriteStatement', expressions, line: writeToken.line, column: writeToken.column };
   }
 
   private parseProcesoOrAlgoritmoBlock(): ProcesoBlockNode {
-    const blockTypeToken = this.advance(); // Consume Proceso or Algoritmo
+    const blockTypeToken = this.advance(); 
     
     this.skipIgnoredTokens();
     const nameToken = this.consume(TokenType.IDENTIFIER, `Expected an identifier (name) after ${blockTypeToken.value}.`);
@@ -287,14 +318,12 @@ export class Parser {
   }
 
   private isAtEnd(): boolean {
-    // Consider EOF as the end, or if current is past the last actual token
     if (this.current >= this.tokens.length) return true; 
     return this.tokens[this.current].type === TokenType.EOF;
   }
 
   private peek(): Token {
     if (this.current >= this.tokens.length) {
-      // Return the last token if out of bounds (should be EOF)
       return this.tokens[this.tokens.length - 1]; 
     }
     return this.tokens[this.current];
@@ -303,7 +332,6 @@ export class Parser {
     if (this.current + 1 >= this.tokens.length) {
       return null;
     }
-    // Skip ignored tokens to find the next meaningful token
     let lookahead = this.current + 1;
     while (lookahead < this.tokens.length &&
            (this.tokens[lookahead].type === TokenType.WHITESPACE ||
