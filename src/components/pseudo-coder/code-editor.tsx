@@ -19,6 +19,48 @@ interface CodeEditorProps {
 
 const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave, onLoad }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const lineNumbersRef = React.useRef<HTMLDivElement>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const editorRef = React.useRef<any>(null); // For react-simple-code-editor's instance
+
+  const [lineCount, setLineCount] = React.useState(1);
+  const [forceUpdate, setForceUpdate] = React.useState(0); // To trigger effect after textareaRef is set
+
+  React.useEffect(() => {
+    setLineCount(code.split('\n').length);
+  }, [code]);
+
+  React.useEffect(() => {
+    const currentTextarea = textareaRef.current;
+    const currentLineNumbersRef = lineNumbersRef.current;
+    const editorInstance = editorRef.current;
+
+    if (currentTextarea && currentLineNumbersRef && editorInstance?._input) {
+        const preElement = editorInstance._input.parentElement?.querySelector('pre');
+
+      const handleScroll = () => {
+        if (currentLineNumbersRef) {
+          currentLineNumbersRef.scrollTop = currentTextarea.scrollTop;
+        }
+      };
+
+      currentTextarea.addEventListener('scroll', handleScroll);
+      handleScroll(); // Initial sync
+
+      if (preElement) {
+        const computedStyle = window.getComputedStyle(preElement);
+        currentLineNumbersRef.style.fontFamily = computedStyle.fontFamily;
+        currentLineNumbersRef.style.fontSize = computedStyle.fontSize;
+        currentLineNumbersRef.style.lineHeight = computedStyle.lineHeight;
+        currentLineNumbersRef.style.paddingTop = computedStyle.paddingTop;
+        currentLineNumbersRef.style.paddingBottom = computedStyle.paddingBottom;
+      }
+
+      return () => {
+        currentTextarea.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [lineCount, forceUpdate]); // forceUpdate ensures this runs after textareaRef is set
 
   const handleLoadClick = () => {
     fileInputRef.current?.click();
@@ -156,6 +198,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
     return result;
   };
 
+  const editorBaseStyle = {
+    fontFamily: '"Source Code Pro", monospace',
+    fontSize: '0.875rem', // 14px
+    lineHeight: '1.25rem', // 20px
+  };
+
+  const editorPadding = 12;
+
   return (
     <Card className="flex flex-col flex-grow shadow-lg rounded-lg overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between p-4 border-b shrink-0">
@@ -179,24 +229,52 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-0 overflow-auto"> 
-          <Editor
-            value={code}
-            onValueChange={setCode}
-            highlight={highlightCode}
-            padding={12} 
-            textareaClassName="outline-none"
-            preClassName="outline-none"
-            style={{
-              fontFamily: '"Source Code Pro", monospace',
-              fontSize: '0.875rem', 
-              lineHeight: '1.25rem', 
-              minHeight: '100%', 
-              caretColor: 'var(--foreground)', 
-            }}
-            className="w-full bg-background text-foreground" 
-            aria-label="Pseudocode editor"
-          />
+      <CardContent className="flex-grow flex p-0 overflow-hidden bg-background">
+        <div
+          ref={lineNumbersRef}
+          className="text-right select-none bg-muted text-muted-foreground"
+          style={{
+            width: '50px', // Adjust width based on expected max line numbers
+            paddingRight: '10px',
+            overflowY: 'hidden', // Scroll is synced
+            // Font family, size, line height, and top/bottom padding are synced from editor via JS
+            // Each line number div inside will have height matching editor's line height
+            height: '100%', // Take full height of CardContent
+            boxSizing: 'border-box',
+          }}
+        >
+          {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNumber) => (
+            <div key={lineNumber} style={{ height: editorBaseStyle.lineHeight }}>
+              {lineNumber}
+            </div>
+          ))}
+        </div>
+        <Editor
+          ref={(instance: any) => {
+            editorRef.current = instance; // Store editor instance
+            if (instance && instance._input && !textareaRef.current) {
+              textareaRef.current = instance._input;
+              setForceUpdate(val => val + 1); // Trigger useEffect for scroll listener setup
+            } else if (!instance && textareaRef.current) {
+              textareaRef.current = null; // Clear ref on unmount
+            }
+          }}
+          value={code}
+          onValueChange={setCode}
+          highlight={highlightCode}
+          padding={editorPadding}
+          textareaClassName="outline-none"
+          preClassName="outline-none" // Used for style syncing
+          style={{
+            ...editorBaseStyle,
+            minHeight: '100%',
+            flexGrow: 1,
+            caretColor: 'var(--foreground)',
+            backgroundColor: 'var(--background)', // Ensure editor bg matches
+          }}
+          className="w-full bg-background text-foreground" 
+          aria-label="Pseudocode editor"
+        />
       </CardContent>
     </Card>
   );
