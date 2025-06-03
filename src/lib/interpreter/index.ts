@@ -3,7 +3,7 @@ import { lexer } from './lexer';
 import { Parser } from './parser';
 import { Evaluator } from './evaluator';
 
-export function executePseudocode(code: string): string {
+export function executePseudocode(code: string, inputs?: string[]): string {
   try {
     const tokens = lexer(code);
     // console.log("Tokens:", tokens); // For debugging
@@ -13,7 +13,7 @@ export function executePseudocode(code: string): string {
     // console.log("AST:", JSON.stringify(ast, null, 2)); // For debugging
 
     const evaluator = new Evaluator();
-    const output = evaluator.evaluate(ast);
+    const output = evaluator.evaluate(ast, inputs); // Pasar inputs al evaluador
     return output;
   } catch (error: any) {
     // console.error("Interpreter Error:", error); // For debugging

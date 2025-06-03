@@ -4,6 +4,7 @@
 import * as React from 'react';
 import CodeEditor from '@/components/pseudo-coder/code-editor';
 import RequirementsDisplay from '@/components/pseudo-coder/requirements-display';
+import InputConsole from '@/components/pseudo-coder/input-console'; // Nueva importación
 import OutputConsole from '@/components/pseudo-coder/output-console';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +14,7 @@ import { executePseudocode } from '@/lib/interpreter';
 export default function PseudoCoderPage() {
   const [code, setCode] = React.useState<string>('// Ejemplo:\n// ESCRIBIR "Hola Mundo"\n');
   const [requirements, setRequirements] = React.useState<string>('// Requerimiento de Ejemplo\n// Crear un programa que muestre "Hola Mundo" en la consola.');
+  const [rawInput, setRawInput] = React.useState<string>(''); // Nuevo estado para la consola de entrada
   const [output, setOutput] = React.useState<string>('');
   const { toast } = useToast();
 
@@ -27,7 +29,9 @@ export default function PseudoCoderPage() {
       return;
     }
     
-    const result = executePseudocode(code);
+    // Procesar la entrada pre-suministrada
+    const preSuppliedInputs = rawInput.length > 0 ? rawInput.split('\n') : [];
+    const result = executePseudocode(code, preSuppliedInputs);
     setOutput(result);
 
     if (result.startsWith("Error:")) {
@@ -157,7 +161,7 @@ export default function PseudoCoderPage() {
           />
         </div>
 
-        <div className="flex flex-col gap-4 min-h-0"> 
+        <div className="flex flex-col gap-4 min-h-0"> {/* Columna derecha */}
           <div className="flex-1 min-h-0"> 
              <RequirementsDisplay
                 requirements={requirements}
@@ -165,6 +169,12 @@ export default function PseudoCoderPage() {
                 onSave={handleSaveRequirements}
                 onLoad={handleLoadRequirements}
               />
+          </div>
+          <div className="flex-1 min-h-0"> {/* Nuevo contenedor para InputConsole */}
+            <InputConsole
+              value={rawInput}
+              onChange={setRawInput}
+            />
           </div>
           <div className="flex-1 min-h-0"> 
             <OutputConsole output={output} />
