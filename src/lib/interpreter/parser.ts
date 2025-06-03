@@ -7,13 +7,11 @@ export class Parser {
   private current = 0;
 
   public parse(tokens: Token[]): ProgramNode {
-    // Filter out whitespace and comments, as they are generally not syntactically significant for PSeInt's structure
-    // Newlines can be significant for statement termination if semicolons are omitted.
     this.tokens = tokens.filter(token => token.type !== TokenType.WHITESPACE && token.type !== TokenType.COMMENT);
     this.current = 0;
     const statements: StatementNode[] = [];
 
-    this.skipNewlines(); // Skip any leading newlines
+    this.skipNewlines(); 
 
     if (this.check(TokenType.KEYWORD_PROCESO) || this.check(TokenType.KEYWORD_ALGORITMO)) {
       statements.push(this.parseProcesoOrAlgoritmoBlock());
@@ -41,7 +39,7 @@ export class Parser {
   }
   
   private parseStatement(): StatementNode | null {
-    this.skipNewlines(); 
+    // DO NOT skipNewlines() here. The caller (block parser) does it.
     const currentToken = this.peek();
     
     if (currentToken.type === TokenType.KEYWORD_ESCRIBIR) {
@@ -53,14 +51,12 @@ export class Parser {
     } else if (currentToken.type === TokenType.KEYWORD_MIENTRAS) {
       return this.parseMientrasStatement();
     } else if (currentToken.type === TokenType.IDENTIFIER) {
-        const nextToken = this.peekNextNonNewline(); // Check what follows the identifier
+        const nextToken = this.peekNextNonNewline(); 
         if (nextToken && nextToken.type === TokenType.OPERATOR_ASSIGN) {
             const identifierToken = this.advance(); 
             const identifierNode: IdentifierNode = { type: 'Identifier', name: identifierToken.value, line: identifierToken.line, column: identifierToken.column };
             return this.parseAssignmentStatement(identifierNode);
         }
-        // Later, add procedure call parsing here if IDENTIFIER is not followed by <-
-        // For now, if it's just an IDENTIFIER, it's likely an error or an unimplemented feature.
     }
     return null; 
   }
@@ -69,7 +65,7 @@ export class Parser {
     const defineToken = this.consume(TokenType.KEYWORD_DEFINIR, "Error interno: Se esperaba DEFINIR."); 
     const identifiers: IdentifierNode[] = [];
     
-    this.skipNewlines();
+    this.skipNewlines(); // Allow newlines between DEFINIR and first identifier, or between identifiers
     do {
         this.skipNewlines();
         const idToken = this.consume(TokenType.IDENTIFIER, `Se esperaba un identificador después de 'Definir' o una coma.`);
@@ -87,18 +83,18 @@ export class Parser {
     }
     const dataTypeNode: IdentifierNode = { type: 'Identifier', name: dataTypeToken.value, line: dataTypeToken.line, column: dataTypeToken.column };
 
-    this.consumeOptionalSemicolonOrNewline();
+    this.consumeOptionalSemicolon();
     return { type: 'DefineStatement', identifiers, dataType: dataTypeNode, line: defineToken.line, column: defineToken.column };
   }
   
   private parseAssignmentStatement(identifier: IdentifierNode): AssignmentStatementNode {
     const assignToken = this.consume(TokenType.OPERATOR_ASSIGN, "Se esperaba el operador de asignación '<-'.");
-    this.skipNewlines();
+    this.skipNewlines(); // Allow newlines after '<-'
     const expression = this.parseExpression();
     if (!expression) {
       throw new Error(`Parser Error (line ${assignToken.line}, col ${assignToken.column + assignToken.value.length}): Se esperaba una expresión después del operador de asignación '<-'.`);
     }
-    this.consumeOptionalSemicolonOrNewline();
+    this.consumeOptionalSemicolon();
     return { type: 'AssignmentStatement', identifier, expression, line: identifier.line, column: identifier.column };
   }
 
@@ -106,7 +102,7 @@ export class Parser {
     const readToken = this.consume(TokenType.KEYWORD_LEER, "Error interno: Se esperaba LEER."); 
     const identifiers: IdentifierNode[] = [];
     
-    this.skipNewlines();
+    this.skipNewlines(); // Allow newlines between LEER and first identifier, or between identifiers
     do {
         this.skipNewlines();
         const idToken = this.consume(TokenType.IDENTIFIER, `Se esperaba un identificador de variable después de 'Leer' o una coma.`);
@@ -114,43 +110,41 @@ export class Parser {
         this.skipNewlines();
     } while (this.match(TokenType.COMMA));
 
-    this.consumeOptionalSemicolonOrNewline();
+    this.consumeOptionalSemicolon();
     return { type: 'ReadStatement', identifiers, line: readToken.line, column: readToken.column };
   }
 
   private parseMientrasStatement(): MientrasStatementNode {
     const mientrasToken = this.consume(TokenType.KEYWORD_MIENTRAS, "Error interno: se esperaba MIENTRAS."); 
     
-    this.skipNewlines();
+    this.skipNewlines(); // Allow newlines after MIENTRAS
     const condition = this.parseExpression();
     if (!condition) {
       throw new Error(`Parser Error (line ${mientrasToken.line}, col ${mientrasToken.column + mientrasToken.value.length}): Se esperaba una condición después de 'Mientras'.`);
     }
 
-    this.skipNewlines();
+    this.skipNewlines(); // Allow newlines after condition
     this.consume(TokenType.KEYWORD_HACER_MIENTRAS, "Se esperaba la palabra clave 'Hacer' después de la condición en la instrucción 'Mientras'.");
 
     const body: StatementNode[] = [];
-    this.skipNewlines(); // Skip newlines before the body statements
+    // Newlines after HACER are handled by the loop's skipNewlines()
 
-    while (!this.isAtEnd() && !this.check(TokenType.KEYWORD_FINMIENTRAS)) {
+    while (true) {
+      this.skipNewlines(); // Crucial: skip newlines before the next statement in the body OR FinMientras
+      if (this.isAtEnd() || this.check(TokenType.KEYWORD_FINMIENTRAS)) {
+        break;
+      }
       const statement = this.parseStatement();
       if (statement) {
         body.push(statement);
       } else {
-        this.skipNewlines(); 
-        if (this.isAtEnd() || this.check(TokenType.KEYWORD_FINMIENTRAS)) {
-          break; 
-        }
         const nextToken = this.peek();
         throw new Error(`Parser Error (line ${nextToken.line}, col ${nextToken.column}): Token inesperado '${nextToken.value}' (tipo: ${nextToken.type}) dentro del bloque 'Mientras'. Se esperaba una instrucción válida o 'FinMientras'.`);
       }
-      // parseStatement itself should handle consuming its trailing newline/semicolon
     }
 
-    this.skipNewlines(); // Skip newlines before FinMientras
     this.consume(TokenType.KEYWORD_FINMIENTRAS, "Se esperaba la palabra clave 'FinMientras' para cerrar el bloque 'Mientras'.");
-    this.consumeOptionalSemicolonOrNewline(); // FinMientras can also be followed by ; or newline
+    this.consumeOptionalSemicolon(); 
     return { type: 'MientrasStatement', condition, body, line: mientrasToken.line, column: mientrasToken.column };
   }
 
@@ -159,47 +153,53 @@ export class Parser {
   }
 
   private parseAdditiveExpression(): ExpressionNode | null {
-    this.skipNewlines();
+    this.skipNewlines(); // Allow leading newlines in an expression part
     let left = this.parseMultiplicativeExpression();
     if (!left) return null;
 
-    this.skipNewlines();
-    while (this.check(TokenType.OPERATOR_PLUS) || this.check(TokenType.OPERATOR_MINUS)) {
-      const operatorToken = this.advance(); 
-      const operator = operatorToken.type;
-      this.skipNewlines();
-      const right = this.parseMultiplicativeExpression();
-      if (!right) {
-        throw new Error(`Parser Error (line ${operatorToken.line}, col ${operatorToken.column + operatorToken.value.length}): Se esperaba una expresión después del operador '${operatorToken.value}'.`);
+    while (true) {
+      this.skipNewlines(); // Allow newlines before operator
+      if (this.check(TokenType.OPERATOR_PLUS) || this.check(TokenType.OPERATOR_MINUS)) {
+        const operatorToken = this.advance(); 
+        const operator = operatorToken.type;
+        this.skipNewlines(); // Allow newlines after operator
+        const right = this.parseMultiplicativeExpression();
+        if (!right) {
+          throw new Error(`Parser Error (line ${operatorToken.line}, col ${operatorToken.column + operatorToken.value.length}): Se esperaba una expresión después del operador '${operatorToken.value}'.`);
+        }
+        left = { type: 'BinaryExpression', left, operator, right, line: left.line, column: left.column } as BinaryExpressionNode;
+      } else {
+        break;
       }
-      left = { type: 'BinaryExpression', left, operator, right, line: left.line, column: left.column } as BinaryExpressionNode;
-      this.skipNewlines();
     }
     return left;
   }
 
   private parseMultiplicativeExpression(): ExpressionNode | null {
-    this.skipNewlines();
+    this.skipNewlines(); // Allow leading newlines
     let left = this.parsePrimaryExpression();
     if (!left) return null;
 
-    this.skipNewlines();
-    while (this.check(TokenType.OPERATOR_MULTIPLY) || this.check(TokenType.OPERATOR_DIVIDE) || this.check(TokenType.OPERATOR_MODULO)) {
-      const operatorToken = this.advance(); 
-      const operator = operatorToken.type;
-      this.skipNewlines();
-      const right = this.parsePrimaryExpression();
-      if (!right) {
-        throw new Error(`Parser Error (line ${operatorToken.line}, col ${operatorToken.column + operatorToken.value.length}): Se esperaba una expresión después del operador '${operatorToken.value}'.`);
+    while (true) {
+      this.skipNewlines(); // Allow newlines before operator
+      if (this.check(TokenType.OPERATOR_MULTIPLY) || this.check(TokenType.OPERATOR_DIVIDE) || this.check(TokenType.OPERATOR_MODULO)) {
+        const operatorToken = this.advance(); 
+        const operator = operatorToken.type;
+        this.skipNewlines(); // Allow newlines after operator
+        const right = this.parsePrimaryExpression();
+        if (!right) {
+          throw new Error(`Parser Error (line ${operatorToken.line}, col ${operatorToken.column + operatorToken.value.length}): Se esperaba una expresión después del operador '${operatorToken.value}'.`);
+        }
+        left = { type: 'BinaryExpression', left, operator, right, line: left.line, column: left.column } as BinaryExpressionNode;
+      } else {
+        break;
       }
-      left = { type: 'BinaryExpression', left, operator, right, line: left.line, column: left.column } as BinaryExpressionNode;
-      this.skipNewlines();
     }
     return left;
   }
 
   private parsePrimaryExpression(): ExpressionNode | null {
-    this.skipNewlines();
+    this.skipNewlines(); // Allow leading newlines
     const token = this.peek();
 
     if (token.type === TokenType.STRING_LITERAL) {
@@ -236,6 +236,7 @@ export class Parser {
     const writeToken = this.consume(TokenType.KEYWORD_ESCRIBIR, "Error interno: Se esperaba ESCRIBIR."); 
     const expressions: ExpressionNode[] = [];
     
+    // Allow newlines between ESCRIBIR and first expression
     this.skipNewlines();
     const firstExpr = this.parseExpression();
     if (!firstExpr) {
@@ -244,85 +245,64 @@ export class Parser {
     }
     expressions.push(firstExpr);
 
-    this.skipNewlines();
-    while (this.match(TokenType.COMMA)) {
-      this.skipNewlines();
-      const nextExpr = this.parseExpression();
-      if (!nextExpr) {
-        const token = this.previous().type === TokenType.COMMA ? this.peek() : this.previous();
-        throw new Error(`Parser Error (line ${token.line}, col ${token.column}): Se esperaba una expresión después de la coma en la instrucción 'Escribir'.`);
+    while (true) {
+      this.skipNewlines(); // Allow newlines before comma
+      if (this.match(TokenType.COMMA)) {
+        this.skipNewlines(); // Allow newlines after comma
+        const nextExpr = this.parseExpression();
+        if (!nextExpr) {
+          const token = this.previous().type === TokenType.COMMA ? this.peek() : this.previous();
+          throw new Error(`Parser Error (line ${token.line}, col ${token.column}): Se esperaba una expresión después de la coma en la instrucción 'Escribir'.`);
+        }
+        expressions.push(nextExpr);
+      } else {
+        break;
       }
-      expressions.push(nextExpr);
-      this.skipNewlines();
     }
     
-    this.consumeOptionalSemicolonOrNewline();
+    this.consumeOptionalSemicolon();
     return { type: 'WriteStatement', expressions, line: writeToken.line, column: writeToken.column };
   }
 
   private parseProcesoOrAlgoritmoBlock(): ProcesoBlockNode {
     const blockTypeToken = this.advance(); 
     
-    this.skipNewlines();
+    this.skipNewlines(); // Allow newlines after Proceso/Algoritmo keyword
     const nameToken = this.consume(TokenType.IDENTIFIER, `Se esperaba un nombre (identificador) después de '${blockTypeToken.value}'.`);
     const processNameNode: IdentifierNode = { type: 'Identifier', name: nameToken.value, line: nameToken.line, column: nameToken.column };
   
     const body: StatementNode[] = [];
-    // Newlines after Proceso Name are significant before the first statement
-    this.skipNewlines(); 
-  
     const endTokenType = blockTypeToken.type === TokenType.KEYWORD_PROCESO ? TokenType.KEYWORD_FINPROCESO : TokenType.KEYWORD_FINALGORITMO;
     const endKeywordValue = blockTypeToken.type === TokenType.KEYWORD_PROCESO ? 'FinProceso' : 'FinAlgoritmo';
 
-    while (!this.isAtEnd() && !this.check(endTokenType)) {
-      const statement = this.parseStatement(); // parseStatement now handles its leading newlines
+    while (true) {
+      this.skipNewlines(); // Crucial: skip newlines before the next statement OR end token
+      if (this.isAtEnd() || this.check(endTokenType)) {
+        break;
+      }
+      const statement = this.parseStatement();
       if (statement) {
         body.push(statement);
-        // parseStatement should also handle its own trailing newline/semicolon
       } else {
-        this.skipNewlines(); 
-        if (this.isAtEnd() || this.check(endTokenType)) {
-          break; 
-        }
+        // If parseStatement returns null, it means the current token is not recognized as a statement start.
         const nextToken = this.peek();
         throw new Error(`Parser Error (line ${nextToken.line}, col ${nextToken.column}): Token inesperado '${nextToken.value}' (tipo: ${nextToken.type}) dentro del bloque '${blockTypeToken.value}'. Se esperaba una instrucción válida.`);
       }
     }
   
-    this.skipNewlines(); // Skip newlines before FinProceso/FinAlgoritmo
     this.consume(endTokenType, `Se esperaba '${endKeywordValue}' para finalizar el bloque '${blockTypeToken.value}'.`);
-    this.consumeOptionalSemicolonOrNewline(); // FinProceso/Algoritmo can also be followed by ; or newline
+    this.consumeOptionalSemicolon(); 
   
     return { type: 'ProcesoBlock', name: processNameNode, body, line: blockTypeToken.line, column: blockTypeToken.column };
   }
 
-  private consumeOptionalSemicolonOrNewline(): void {
-    this.skipNewlines(); // Prefer consuming newlines first if present
+  private consumeOptionalSemicolon(): void {
     if (this.check(TokenType.SEMICOLON)) {
       this.advance();
-      this.skipNewlines(); // Also skip newlines after a semicolon
-    } else if (!this.isAtEnd() && !this.isNextTokenAValidStatementStartOrBlockEnd()) {
-      // If there's no semicolon and no newline (already skipped),
-      // and the next token isn't something that can start a new statement or end a block,
-      // it might be an error depending on PSeInt's strictness.
-      // For now, we are more lenient and assume newline was sufficient or implied.
     }
   }
 
-  private isNextTokenAValidStatementStartOrBlockEnd(): boolean {
-    const tokenType = this.peek().type;
-    return [
-        TokenType.KEYWORD_ESCRIBIR, TokenType.KEYWORD_LEER, TokenType.KEYWORD_DEFINIR,
-        TokenType.KEYWORD_MIENTRAS, TokenType.IDENTIFIER, // Add other statement starters
-        TokenType.KEYWORD_FINPROCESO, TokenType.KEYWORD_FINALGORITMO, 
-        TokenType.KEYWORD_FINMIENTRAS, // Add other Fin... keywords
-        TokenType.EOF
-    ].includes(tokenType);
-}
-
-
   private match(...types: TokenType[]): boolean {
-    // skipNewlines() should be called before match if newlines are to be ignored before the token
     for (const type of types) {
       if (this.check(type)) {
         this.advance();
@@ -333,7 +313,6 @@ export class Parser {
   }
 
   private consume(type: TokenType, message: string): Token {
-    // skipNewlines() should be called before consume if newlines are to be ignored
     if (this.check(type)) return this.advance();
     const token = this.peek();
     throw new Error(`Parser Error (line ${token.line}, col ${token.column}): ${message} Se encontró '${token.value}' (tipo: ${token.type}) en su lugar.`);
@@ -355,26 +334,35 @@ export class Parser {
 
   private peek(): Token {
     if (this.current >= this.tokens.length) {
-      const lastKnownToken = this.tokens.length > 0 ? this.tokens[this.tokens.length - 1] : null;
-      return { type: TokenType.EOF, value: '', line: lastKnownToken ? lastKnownToken.line : 1, column: lastKnownToken ? lastKnownToken.column + 1 : 1, startIndex: lastKnownToken ? lastKnownToken.startIndex + 1 : 0 };
+      // Provide a sensible EOF token if past the end, using last known line/col
+      const lastKnownToken = this.tokens.length > 0 ? this.tokens[this.tokens.length - 1] : { line: 1, column: 0, startIndex: 0 };
+      return { type: TokenType.EOF, value: '', line: lastKnownToken.line, column: lastKnownToken.column + 1, startIndex: lastKnownToken.startIndex + 1 };
     }
     return this.tokens[this.current];
   }
 
   private peekNextNonNewline(): Token | null {
-    let lookahead = this.current + 1;
-    while (lookahead < this.tokens.length) {
-        const tokenType = this.tokens[lookahead].type;
-        if (tokenType === TokenType.NEWLINE) { // Only skip newlines here
-            lookahead++;
-        } else {
-            return this.tokens[lookahead]; // Return the first non-newline token
+    let lookahead = this.current; // Start peeking from the current token
+    // We need to find the next token that is NOT a newline, IF the current one is an IDENTIFIER.
+    // This function is used to see if an IDENTIFIER is followed by '<-' for an assignment.
+    // It should look past the current token if it's an IDENTIFIER.
+    
+    // If current token is IDENTIFIER, we look at tokens *after* it.
+    // The original intent was likely to check what follows an IDENTIFIER.
+    // So, we iterate from this.current + 1
+    
+    for (let i = this.current + 1; i < this.tokens.length; i++) {
+        const token = this.tokens[i];
+        if (token.type !== TokenType.NEWLINE) {
+            return token;
         }
     }
-    return null; // Reached end or only found newlines
+    return null; 
   }
 
   private previous(): Token {
     return this.tokens[this.current - 1];
   }
 }
+
+    
