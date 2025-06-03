@@ -146,7 +146,7 @@ export default function PseudoCoderPage() {
         </Button>
       </header>
 
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0"> {/* min-h-0 for flex children */}
+      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0"> {/* min-h-0 for flex/grid children */}
         <div className="md:col-span-2 flex flex-col min-h-0"> {/* Added min-h-0 */}
           <CodeEditor
             code={code}
