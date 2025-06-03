@@ -32,7 +32,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
     const editorComponentInstance = editorRef.current;
     const lineNumbersDiv = lineNumbersRef.current;
 
-    // Check if the editor instance and its internal _input textarea exist, and if the line numbers div exists
     if (editorComponentInstance && editorComponentInstance._input && lineNumbersDiv) {
       const textareaElement = editorComponentInstance._input as HTMLTextAreaElement;
 
@@ -45,10 +44,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
       const syncStylesAndScroll = () => {
         if (!textareaElement || !lineNumbersDiv) return;
         
-        lineNumbersDiv.scrollTop = textareaElement.scrollTop; // Sync scroll
+        lineNumbersDiv.scrollTop = textareaElement.scrollTop; 
 
         const preElement = textareaElement.parentElement?.querySelector('pre');
-        if (preElement) { // Sync styles
+        if (preElement) { 
           const computedStyle = window.getComputedStyle(preElement);
           lineNumbersDiv.style.fontFamily = computedStyle.fontFamily;
           lineNumbersDiv.style.fontSize = computedStyle.fontSize;
@@ -59,14 +58,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
       };
 
       textareaElement.addEventListener('scroll', handleScroll);
-      syncStylesAndScroll(); // Call for initial setup and style sync
+      syncStylesAndScroll(); 
 
-      // Cleanup function
       return () => {
         textareaElement.removeEventListener('scroll', handleScroll);
       };
     }
-  }, [code, lineCount]); // Dependencies: code changes -> lineCount changes -> effect re-runs
+  }, [code, lineCount]); 
 
   const handleLoadClick = () => {
     fileInputRef.current?.click();
@@ -235,7 +233,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow flex p-0 overflow-auto bg-background"> {/* Use overflow-auto here */}
+      <CardContent className="flex-grow flex p-0 bg-background"> {/* Ensure no overflow-auto here */}
         <div
           ref={lineNumbersRef}
           className="text-right select-none bg-muted text-muted-foreground"
@@ -245,7 +243,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
             overflowY: 'hidden', 
             height: '100%', 
             boxSizing: 'border-box',
-            // Styles like font, fontSize, lineHeight, paddingTop, paddingBottom are synced by JS
           }}
         >
           {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNumber) => (
@@ -255,13 +252,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           ))}
         </div>
         <Editor
-          ref={editorRef} // Directly assign the Editor component instance
+          ref={editorRef} 
           value={code}
           onValueChange={setCode}
           highlight={highlightCode}
           padding={editorPadding}
           textareaClassName="outline-none"
-          preClassName="outline-none" // Used for style syncing
+          preClassName="outline-none" 
           style={{
             ...editorBaseStyle,
             minHeight: '100%',
