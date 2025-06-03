@@ -1,5 +1,5 @@
 
-import type { ProgramNode, StatementNode, WriteStatementNode, StringLiteralNode, ExpressionNode, ASTNode, NumberLiteralNode, IdentifierNode } from './types';
+import type { ProgramNode, StatementNode, WriteStatementNode, ExpressionNode, ASTNode, NumberLiteralNode, IdentifierNode, ProcesoBlockNode } from './types';
 
 export class Evaluator {
   private output: string = '';
@@ -18,28 +18,35 @@ export class Evaluator {
       case 'WriteStatement':
         this.evaluateWriteStatement(statement as WriteStatementNode);
         break;
+      case 'ProcesoBlock':
+        this.evaluateProcesoBlock(statement as ProcesoBlockNode);
+        break;
       default:
         // This case should ideally not be reached if the parser only produces valid/known statement types.
-        // If it is reached, it might indicate an unhandled statement type.
         // For robustness, we can log or ignore, rather than throwing an error that breaks execution.
-        // console.warn(`Evaluator Warning: Unknown or unhandled statement type '${statement.type}'`);
+        // console.warn(`Evaluator Warning: Unknown or unhandled statement type '${(statement as ASTNode)?.type}'`);
         break;
+    }
+  }
+
+  private evaluateProcesoBlock(node: ProcesoBlockNode): void {
+    // For now, simply evaluate the statements within the Proceso block's body.
+    // In the future, this could involve setting up a new scope for the process.
+    // console.log(`Executing Proceso: ${node.name.name}`);
+    for (const statement of node.body) {
+      this.evaluateStatement(statement);
     }
   }
 
   private evaluateExpression(expression: ExpressionNode): any {
     switch (expression.type) {
       case 'StringLiteral':
-        return expression.value; // Value is already without quotes from parser
+        return expression.value; 
       case 'NumberLiteral':
         return expression.value;
       case 'Identifier':
-        // For now, we don't have variable storage.
-        // We could throw an error: throw new Error(`Evaluator Error: Variable '${expression.name}' not defined.`);
-        // Or return a placeholder for display:
-        return `[${expression.name}]`; // Placeholder indicating an unevaluated variable
+        return `[${expression.name}]`; 
       default:
-        // This attempts to get the 'type' property even if expression is not an ASTNode, for better error reporting.
         const exprType = (expression as ASTNode)?.type || 'unknown expression';
         throw new Error(`Evaluator Error: Unknown expression type '${exprType}'.`);
     }
@@ -49,9 +56,8 @@ export class Evaluator {
     let lineOutputParts: string[] = [];
     for (const expr of node.expressions) {
       const value = this.evaluateExpression(expr);
-      lineOutputParts.push(String(value)); // Convert all evaluated parts to string
+      lineOutputParts.push(String(value)); 
     }
-    // PSeInt ESCRIBIR usually adds spaces between comma-separated items.
     this.output += lineOutputParts.join(' ') + '\n';
   }
 }

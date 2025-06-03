@@ -134,7 +134,13 @@ export interface WriteStatementNode extends ASTNode {
   expressions: ExpressionNode[]; 
 }
 
-export type StatementNode = WriteStatementNode; 
+export interface ProcesoBlockNode extends ASTNode {
+  type: 'ProcesoBlock'; // Specific type for Proceso/Algoritmo blocks
+  name: IdentifierNode;
+  body: StatementNode[];
+}
+
+export type StatementNode = WriteStatementNode | ProcesoBlockNode; 
 
 export interface ProgramNode extends ASTNode {
   type: 'Program';
