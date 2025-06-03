@@ -60,7 +60,7 @@ export class Evaluator {
         // Already handled in the initial pass.
         break;
       case 'MientrasStatement':
-        this.output += `// INFO: Estructura 'Mientras' reconocida. La lógica de ejecución del bucle aún no está implementada.\n`;
+        this.output += `// INFO: Estructura 'Mientras' reconocida por el parser. La lógica de ejecución del bucle aún no está implementada en el evaluador.\n`;
         // this.evaluateMientrasStatement(statement as MientrasStatementNode); // Logic to be implemented
         break;
       default:
@@ -90,27 +90,30 @@ export class Evaluator {
   private evaluateAssignmentStatement(node: AssignmentStatementNode): void {
     const value = this.evaluateExpression(node.expression);
     this.environment.set(node.identifier.name, value);
-    this.output += `> '${node.identifier.name}' toma el valor: ${this.formatValueForOutput(value)}\n`;
+    this.output += `> ASIGNAR: Variable '${node.identifier.name}' toma el valor: ${this.formatValueForOutput(value)}\n`;
   }
 
   private evaluateReadStatement(node: ReadStatementNode): void {
     for (const id of node.identifiers) {
       let rawInputValue: string | null = null;
       const variableName = id.name;
+      let inputSource = "";
 
       this.output += `Ejecutando LEER para la variable: '${variableName}'.\n`;
 
       if (this.preSuppliedInputs && this.currentInputIndex < this.preSuppliedInputs.length) {
         rawInputValue = this.preSuppliedInputs[this.currentInputIndex];
         this.currentInputIndex++;
-        this.output += `  Input Console proveyó: "${rawInputValue}" (para '${variableName}')\n`;
+        inputSource = "Input Console";
+        this.output += `  Fuente: ${inputSource}, valor provisto: "${rawInputValue}" (para '${variableName}')\n`;
       } else {
-        this.output += `  Esperando entrada interactiva del usuario para '${variableName}'...\n`;
+        inputSource = "Prompt Interactivo";
+        this.output += `  Fuente: ${inputSource}. Esperando entrada del usuario para '${variableName}'...\n`;
         rawInputValue = window.prompt(`Ingrese valor para ${variableName}:`);
         if (rawInputValue !== null) {
-          this.output += `  Usuario ingresó: "${rawInputValue}" (para '${variableName}')\n`;
+          this.output += `  Usuario ingresó (desde ${inputSource}): "${rawInputValue}" (para '${variableName}')\n`;
         } else {
-          this.output += `  Entrada cancelada por el usuario para '${variableName}'.\n`;
+          this.output += `  Entrada cancelada por el usuario para '${variableName}' (desde ${inputSource}).\n`;
         }
       }
 
@@ -145,7 +148,7 @@ export class Evaluator {
         typeOfValue = 'Texto';
       }
       this.environment.set(variableName, assignedValue);
-      this.output += `> '${variableName}' toma el valor: ${this.formatValueForOutput(assignedValue)} (Tipo inferido: ${typeOfValue})\n`;
+      this.output += `> LEER ASIGNADO: Variable '${variableName}' (entrada original: "${rawInputValue}") toma el valor ${this.formatValueForOutput(assignedValue)} (interpretado como ${typeOfValue})\n`;
     }
   }
 
