@@ -20,47 +20,53 @@ interface CodeEditorProps {
 const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave, onLoad }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const lineNumbersRef = React.useRef<HTMLDivElement>(null);
-  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const editorRef = React.useRef<any>(null); // For react-simple-code-editor's instance
 
   const [lineCount, setLineCount] = React.useState(1);
-  const [forceUpdate, setForceUpdate] = React.useState(0); // To trigger effect after textareaRef is set
 
   React.useEffect(() => {
     setLineCount(code.split('\n').length);
   }, [code]);
 
   React.useEffect(() => {
-    const currentTextarea = textareaRef.current;
-    const currentLineNumbersRef = lineNumbersRef.current;
-    const editorInstance = editorRef.current;
+    const editorComponentInstance = editorRef.current;
+    const lineNumbersDiv = lineNumbersRef.current;
 
-    if (currentTextarea && currentLineNumbersRef && editorInstance?._input) {
-        const preElement = editorInstance._input.parentElement?.querySelector('pre');
+    // Check if the editor instance and its internal _input textarea exist, and if the line numbers div exists
+    if (editorComponentInstance && editorComponentInstance._input && lineNumbersDiv) {
+      const textareaElement = editorComponentInstance._input as HTMLTextAreaElement;
 
       const handleScroll = () => {
-        if (currentLineNumbersRef) {
-          currentLineNumbersRef.scrollTop = currentTextarea.scrollTop;
+        if (lineNumbersDiv) {
+          lineNumbersDiv.scrollTop = textareaElement.scrollTop;
+        }
+      };
+      
+      const syncStylesAndScroll = () => {
+        if (!textareaElement || !lineNumbersDiv) return;
+        
+        lineNumbersDiv.scrollTop = textareaElement.scrollTop; // Sync scroll
+
+        const preElement = textareaElement.parentElement?.querySelector('pre');
+        if (preElement) { // Sync styles
+          const computedStyle = window.getComputedStyle(preElement);
+          lineNumbersDiv.style.fontFamily = computedStyle.fontFamily;
+          lineNumbersDiv.style.fontSize = computedStyle.fontSize;
+          lineNumbersDiv.style.lineHeight = computedStyle.lineHeight;
+          lineNumbersDiv.style.paddingTop = computedStyle.paddingTop;
+          lineNumbersDiv.style.paddingBottom = computedStyle.paddingBottom;
         }
       };
 
-      currentTextarea.addEventListener('scroll', handleScroll);
-      handleScroll(); // Initial sync
+      textareaElement.addEventListener('scroll', handleScroll);
+      syncStylesAndScroll(); // Call for initial setup and style sync
 
-      if (preElement) {
-        const computedStyle = window.getComputedStyle(preElement);
-        currentLineNumbersRef.style.fontFamily = computedStyle.fontFamily;
-        currentLineNumbersRef.style.fontSize = computedStyle.fontSize;
-        currentLineNumbersRef.style.lineHeight = computedStyle.lineHeight;
-        currentLineNumbersRef.style.paddingTop = computedStyle.paddingTop;
-        currentLineNumbersRef.style.paddingBottom = computedStyle.paddingBottom;
-      }
-
+      // Cleanup function
       return () => {
-        currentTextarea.removeEventListener('scroll', handleScroll);
+        textareaElement.removeEventListener('scroll', handleScroll);
       };
     }
-  }, [lineCount, forceUpdate]); // forceUpdate ensures this runs after textareaRef is set
+  }, [code, lineCount]); // Dependencies: code changes -> lineCount changes -> effect re-runs
 
   const handleLoadClick = () => {
     fileInputRef.current?.click();
@@ -229,18 +235,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow flex p-0 overflow-hidden bg-background">
+      <CardContent className="flex-grow flex p-0 overflow-auto bg-background"> {/* Use overflow-auto here */}
         <div
           ref={lineNumbersRef}
           className="text-right select-none bg-muted text-muted-foreground"
           style={{
-            width: '50px', // Adjust width based on expected max line numbers
+            width: '50px', 
             paddingRight: '10px',
-            overflowY: 'hidden', // Scroll is synced
-            // Font family, size, line height, and top/bottom padding are synced from editor via JS
-            // Each line number div inside will have height matching editor's line height
-            height: '100%', // Take full height of CardContent
+            overflowY: 'hidden', 
+            height: '100%', 
             boxSizing: 'border-box',
+            // Styles like font, fontSize, lineHeight, paddingTop, paddingBottom are synced by JS
           }}
         >
           {Array.from({ length: lineCount }, (_, i) => i + 1).map((lineNumber) => (
@@ -250,15 +255,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           ))}
         </div>
         <Editor
-          ref={(instance: any) => {
-            editorRef.current = instance; // Store editor instance
-            if (instance && instance._input && !textareaRef.current) {
-              textareaRef.current = instance._input;
-              setForceUpdate(val => val + 1); // Trigger useEffect for scroll listener setup
-            } else if (!instance && textareaRef.current) {
-              textareaRef.current = null; // Clear ref on unmount
-            }
-          }}
+          ref={editorRef} // Directly assign the Editor component instance
           value={code}
           onValueChange={setCode}
           highlight={highlightCode}
@@ -270,7 +267,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
             minHeight: '100%',
             flexGrow: 1,
             caretColor: 'var(--foreground)',
-            backgroundColor: 'var(--background)', // Ensure editor bg matches
+            backgroundColor: 'var(--background)', 
           }}
           className="w-full bg-background text-foreground" 
           aria-label="Pseudocode editor"
