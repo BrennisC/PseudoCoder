@@ -8,39 +8,48 @@ import OutputConsole from '@/components/pseudo-coder/output-console';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Play } from 'lucide-react';
+import { executePseudocode } from '@/lib/interpreter'; // Import the interpreter
 
 export default function PseudoCoderPage() {
-  const [code, setCode] = React.useState<string>('');
-  const [requirements, setRequirements] = React.useState<string>('// Example Requirement\n// Create a program that asks for two numbers and displays their sum.');
+  const [code, setCode] = React.useState<string>('// Ejemplo:\n// ESCRIBIR "Hola Mundo"\n');
+  const [requirements, setRequirements] = React.useState<string>('// Requerimiento de Ejemplo\n// Crear un programa que muestre "Hola Mundo" en la consola.');
   const [output, setOutput] = React.useState<string>('');
   const { toast } = useToast();
 
   const handleExecute = () => {
     if (!code.trim()) {
-      setOutput('Error: No code to execute. Please write some pseudocode in the editor.');
+      setOutput('Error: No hay código para ejecutar. Por favor, escribe algo de pseudocódigo en el editor.');
       toast({
-        title: "Execution Error",
-        description: "No code to execute.",
+        title: "Error de Ejecución",
+        description: "No hay código para ejecutar.",
         variant: "destructive",
       });
       return;
     }
-    // Simulate execution
-    // For a real interpreter, this is where you'd call it.
-    // We'll just echo the code with a message.
-    setOutput(`Simulating execution of:\n\n${code}\n\n// --- Execution Result --- \n// Program finished successfully. (Simulated)`);
-    toast({
-      title: "Execution Successful",
-      description: "Pseudocode 'executed'. Output displayed in console.",
-      variant: "default" // Explicitly set variant, 'default' is usually white background
-    });
+    
+    const result = executePseudocode(code);
+    setOutput(result);
+
+    if (result.startsWith("Error:")) {
+      toast({
+        title: "Error de Ejecución",
+        description: result,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Ejecución Exitosa",
+        description: "Pseudocódigo ejecutado. Salida mostrada en la consola.",
+        variant: "default"
+      });
+    }
   };
 
   const handleClearCode = () => {
     setCode('');
-    setOutput('Editor cleared. Ready for new pseudocode.');
+    setOutput('Editor limpiado. Listo para nuevo pseudocódigo.');
     toast({
-      title: "Editor Cleared",
+      title: "Editor Limpiado",
     });
   };
 
@@ -58,32 +67,32 @@ export default function PseudoCoderPage() {
   const handleSaveCode = () => {
     if (!code.trim()) {
       toast({
-        title: "Save Error",
-        description: "Nothing to save. Code editor is empty.",
+        title: "Error al Guardar",
+        description: "Nada que guardar. El editor de código está vacío.",
         variant: "destructive",
       });
       return;
     }
     downloadFile(code, 'pseudocode.psc', 'text/plain;charset=utf-8');
     toast({
-      title: "Code Saved",
-      description: "Your pseudocode has been downloaded as 'pseudocode.psc'.",
+      title: "Código Guardado",
+      description: "Tu pseudocódigo ha sido descargado como 'pseudocode.psc'.",
     });
   };
   
   const handleSaveRequirements = () => {
     if (!requirements.trim()) {
       toast({
-        title: "Save Error",
-        description: "Nothing to save. Requirements area is empty.",
+        title: "Error al Guardar",
+        description: "Nada que guardar. El área de requerimientos está vacía.",
         variant: "destructive",
       });
       return;
     }
     downloadFile(requirements, 'requirements.txt', 'text/plain;charset=utf-8');
     toast({
-      title: "Requirements Saved",
-      description: "The requirements have been downloaded as 'requirements.txt'.",
+      title: "Requerimientos Guardados",
+      description: "Los requerimientos han sido descargados como 'requirements.txt'.",
     });
   };
 
@@ -91,17 +100,17 @@ export default function PseudoCoderPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
       setter(e.target?.result as string);
-      setOutput(`${type} file "${file.name}" loaded.`);
+      setOutput(`Archivo de ${type} "${file.name}" cargado.`);
       toast({
-        title: `${type} File Loaded`,
-        description: `"${file.name}" loaded successfully.`,
+        title: `Archivo de ${type} Cargado`,
+        description: `"${file.name}" cargado exitosamente.`,
       });
     };
     reader.onerror = () => {
-      setOutput(`Error loading ${type} file "${file.name}".`);
+      setOutput(`Error cargando archivo de ${type} "${file.name}".`);
       toast({
-        title: `Load Error`,
-        description: `Could not load ${type} file "${file.name}".`,
+        title: `Error de Carga`,
+        description: `No se pudo cargar el archivo de ${type} "${file.name}".`,
         variant: "destructive",
       });
     };
@@ -111,7 +120,7 @@ export default function PseudoCoderPage() {
   const handleLoadCode = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      loadFileContent(file, setCode, "Code");
+      loadFileContent(file, setCode, "Código");
     }
     event.target.value = ''; // Reset file input
   };
@@ -119,7 +128,7 @@ export default function PseudoCoderPage() {
   const handleLoadRequirements = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      loadFileContent(file, setRequirements, "Requirements");
+      loadFileContent(file, setRequirements, "Requerimientos");
     }
     event.target.value = ''; // Reset file input
   };
@@ -133,7 +142,7 @@ export default function PseudoCoderPage() {
           className="bg-accent hover:bg-accent/90 text-accent-foreground transition-colors duration-150 shadow-md"
           aria-label="Execute pseudocode"
         >
-          <Play className="mr-2 h-5 w-5" /> Execute Code
+          <Play className="mr-2 h-5 w-5" /> Ejecutar Código
         </Button>
       </header>
 
