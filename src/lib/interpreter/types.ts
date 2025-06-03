@@ -15,17 +15,17 @@ export enum TokenType {
   KEYWORD_SINO = 'KEYWORD_SINO',
   KEYWORD_FINSI = 'KEYWORD_FINSI',
   KEYWORD_SEGUN = 'KEYWORD_SEGUN',
-  KEYWORD_HACER_SEGUN = 'KEYWORD_HACER_SEGUN', // For SEEGUN ... HACER
+  KEYWORD_HACER_SEGUN = 'KEYWORD_HACER_SEGUN', 
   KEYWORD_DEOTROMODO = 'KEYWORD_DEOTROMODO',
   KEYWORD_FINSEGUN = 'KEYWORD_FINSEGUN',
   KEYWORD_MIENTRAS = 'KEYWORD_MIENTRAS',
-  KEYWORD_HACER_MIENTRAS = 'KEYWORD_HACER_MIENTRAS', // For MIENTRAS ... HACER
+  KEYWORD_HACER_MIENTRAS = 'KEYWORD_HACER_MIENTRAS',
   KEYWORD_FINMIENTRAS = 'KEYWORD_FINMIENTRAS',
   KEYWORD_REPETIR = 'KEYWORD_REPETIR',
   KEYWORD_HASTAQUE = 'KEYWORD_HASTAQUE',
   KEYWORD_PARA = 'KEYWORD_PARA',
   KEYWORD_HASTA = 'KEYWORD_HASTA',
-  KEYWORD_CON = 'KEYWORD_CON',
+  KEYWORD_CON = 'KEYWORD_CON', // For 'CON PASO'
   KEYWORD_PASO = 'KEYWORD_PASO',
   KEYWORD_FINPARA = 'KEYWORD_FINPARA',
   KEYWORD_FUNCION = 'KEYWORD_FUNCION',
@@ -43,38 +43,57 @@ export enum TokenType {
   KEYWORD_VERDADERO = 'KEYWORD_VERDADERO',
   KEYWORD_FALSO = 'KEYWORD_FALSO',
 
+  // New keywords from user list
+  KEYWORD_VARIABLE = 'KEYWORD_VARIABLE',
+  KEYWORD_CONSTANTE = 'KEYWORD_CONSTANTE',
+  KEYWORD_DESDE = 'KEYWORD_DESDE',
+  KEYWORD_HACER = 'KEYWORD_HACER', // Generic 'Hacer' (e.g., PARA ... HACER)
+  KEYWORD_CASO = 'KEYWORD_CASO',
+  KEYWORD_POR_REFERENCIA = 'KEYWORD_POR_REFERENCIA', // For "Por Referencia"
+  KEYWORD_DE = 'KEYWORD_DE',
+  KEYWORD_RETORNAR = 'KEYWORD_RETORNAR',
+  KEYWORD_FIN = 'KEYWORD_FIN', // Generic "Fin"
+  KEYWORD_TIPO = 'KEYWORD_TIPO',
+  KEYWORD_REGISTRO = 'KEYWORD_REGISTRO',
+  KEYWORD_ARREGLO = 'KEYWORD_ARREGLO',
+  KEYWORD_PROCEDIMIENTO = 'KEYWORD_PROCEDIMIENTO',
+  KEYWORD_FINPROCEDIMIENTO = 'KEYWORD_FINPROCEDIMIENTO',
+  KEYWORD_MODULO = 'KEYWORD_MODULO',
+  KEYWORD_FINMODULO = 'KEYWORD_FINMODULO',
+
+  // Logical operators as keywords for highlighting
+  KEYWORD_LOGICAL_AND = 'KEYWORD_LOGICAL_AND', // Y, &, &&
+  KEYWORD_LOGICAL_OR = 'KEYWORD_LOGICAL_OR',   // O, |, ||
+  KEYWORD_LOGICAL_NOT = 'KEYWORD_LOGICAL_NOT', // NO, !
+
   IDENTIFIER = 'IDENTIFIER',
-  STRING_LITERAL = 'STRING_LITERAL', // Value includes quotes
+  STRING_LITERAL = 'STRING_LITERAL', 
   NUMBER_LITERAL = 'NUMBER_LITERAL',
   
-  OPERATOR_ASSIGN = 'OPERATOR_ASSIGN', // <- or =
-  OPERATOR_PLUS = 'OPERATOR_PLUS',     // +
-  OPERATOR_MINUS = 'OPERATOR_MINUS',    // -
-  OPERATOR_MULTIPLY = 'OPERATOR_MULTIPLY',// *
-  OPERATOR_DIVIDE = 'OPERATOR_DIVIDE',  // /
-  OPERATOR_MODULO = 'OPERATOR_MODULO',  // % MOD
-  OPERATOR_POWER = 'OPERATOR_POWER',   // ^ POTENCIA
+  OPERATOR_ASSIGN = 'OPERATOR_ASSIGN', 
+  OPERATOR_PLUS = 'OPERATOR_PLUS',     
+  OPERATOR_MINUS = 'OPERATOR_MINUS',    
+  OPERATOR_MULTIPLY = 'OPERATOR_MULTIPLY',
+  OPERATOR_DIVIDE = 'OPERATOR_DIVIDE',  
+  OPERATOR_MODULO = 'OPERATOR_MODULO',  
+  OPERATOR_POWER = 'OPERATOR_POWER',   
   
-  OPERATOR_EQ = 'OPERATOR_EQ',        // = (comparison)
-  OPERATOR_NEQ = 'OPERATOR_NEQ',      // <> !=
-  OPERATOR_LT = 'OPERATOR_LT',        // <
-  OPERATOR_GT = 'OPERATOR_GT',        // >
-  OPERATOR_LTE = 'OPERATOR_LTE',      // <=
-  OPERATOR_GTE = 'OPERATOR_GTE',      // >=
+  OPERATOR_EQ = 'OPERATOR_EQ',        
+  OPERATOR_NEQ = 'OPERATOR_NEQ',      
+  OPERATOR_LT = 'OPERATOR_LT',        
+  OPERATOR_GT = 'OPERATOR_GT',        
+  OPERATOR_LTE = 'OPERATOR_LTE',      
+  OPERATOR_GTE = 'OPERATOR_GTE',      
 
-  OPERATOR_AND = 'OPERATOR_AND',      // Y & &&
-  OPERATOR_OR = 'OPERATOR_OR',       // O | ||
-  OPERATOR_NOT = 'OPERATOR_NOT',      // NO !
+  LPAREN = 'LPAREN',                  
+  RPAREN = 'RPAREN',                  
+  LBRACKET = 'LBRACKET',              
+  RBRACKET = 'RBRACKET',              
+  COMMA = 'COMMA',                    
+  SEMICOLON = 'SEMICOLON',            
+  COLON = 'COLON',                    
 
-  LPAREN = 'LPAREN',                  // (
-  RPAREN = 'RPAREN',                  // )
-  LBRACKET = 'LBRACKET',              // [
-  RBRACKET = 'RBRACKET',              // ]
-  COMMA = 'COMMA',                    // ,
-  SEMICOLON = 'SEMICOLON',            // ; (optional in PSeInt, but good to recognize)
-  COLON = 'COLON',                    // : (used in Segun)
-
-  COMMENT = 'COMMENT',                // // ...
+  COMMENT = 'COMMENT',                
   WHITESPACE = 'WHITESPACE',
   NEWLINE = 'NEWLINE',
   EOF = 'EOF',
@@ -86,7 +105,7 @@ export interface Token {
   value: string;
   line: number;
   column: number;
-  startIndex: number; // Index in the original input string
+  startIndex: number; 
 }
 
 export interface ASTNode {
@@ -95,7 +114,7 @@ export interface ASTNode {
 
 export interface StringLiteralNode extends ASTNode {
   type: 'StringLiteral';
-  value: string; // Content of the string, WITHOUT surrounding quotes
+  value: string; 
 }
 
 export interface NumberLiteralNode extends ASTNode {
@@ -115,47 +134,7 @@ export interface WriteStatementNode extends ASTNode {
   expressions: ExpressionNode[]; 
 }
 
-// Future AST Node Types (examples, not yet implemented in parser/evaluator)
-// export interface ReadStatementNode extends ASTNode {
-//   type: 'ReadStatement';
-//   variable: IdentifierNode;
-// }
-
-// export interface AssignmentStatementNode extends ASTNode {
-//   type: 'AssignmentStatement';
-//   assignee: IdentifierNode; // or ArrayAccessorNode
-//   value: ExpressionNode;
-// }
-
-// export interface IfStatementNode extends ASTNode {
-//   type: 'IfStatement';
-//   condition: ExpressionNode;
-//   thenBranch: StatementNode[];
-//   elseBranch?: StatementNode[];
-// }
-
-// export interface WhileStatementNode extends ASTNode {
-//   type: 'WhileStatement';
-//   condition: ExpressionNode;
-//   body: StatementNode[];
-// }
-
-// export interface FunctionDeclarationNode extends ASTNode {
-//  type: 'FunctionDeclaration';
-//  name: IdentifierNode;
-//  params: IdentifierNode[];
-//  returnType?: string; // PSeInt is loosely typed, but sometimes specified
-//  body: StatementNode[];
-// }
-
-// export interface ProcessNode extends ASTNode {
-//   type: 'ProcessNode';
-//   name: IdentifierNode;
-//   body: StatementNode[];
-// }
-
-
-export type StatementNode = WriteStatementNode; // Will expand with IfStatement, WhileStatement, etc.
+export type StatementNode = WriteStatementNode; 
 
 export interface ProgramNode extends ASTNode {
   type: 'Program';

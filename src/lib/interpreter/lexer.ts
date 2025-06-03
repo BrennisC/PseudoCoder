@@ -18,16 +18,13 @@ const KEYWORDS: Record<string, TokenType> = {
   'sino': TokenType.KEYWORD_SINO,
   'finsi': TokenType.KEYWORD_FINSI,
   'segun': TokenType.KEYWORD_SEGUN,
-  // 'hacer' is tricky as it's part of 'segun ... hacer' and 'mientras ... hacer'
   'deotromodo': TokenType.KEYWORD_DEOTROMODO,
   'finsegun': TokenType.KEYWORD_FINSEGUN,
   'mientras': TokenType.KEYWORD_MIENTRAS,
   'finmientras': TokenType.KEYWORD_FINMIENTRAS,
   'repetir': TokenType.KEYWORD_REPETIR,
-  'hastaque': TokenType.KEYWORD_HASTAQUE, // Special case: 'hasta que'
   'para': TokenType.KEYWORD_PARA,
   'hasta': TokenType.KEYWORD_HASTA,
-  'con': TokenType.KEYWORD_CON,
   'paso': TokenType.KEYWORD_PASO,
   'finpara': TokenType.KEYWORD_FINPARA,
   'funcion': TokenType.KEYWORD_FUNCION,
@@ -42,6 +39,32 @@ const KEYWORDS: Record<string, TokenType> = {
   'cadena': TokenType.KEYWORD_CADENA,
   'verdadero': TokenType.KEYWORD_VERDADERO,
   'falso': TokenType.KEYWORD_FALSO,
+  // New keywords from user list
+  'variable': TokenType.KEYWORD_VARIABLE,
+  'constante': TokenType.KEYWORD_CONSTANTE,
+  'desde': TokenType.KEYWORD_DESDE,
+  'hacer': TokenType.KEYWORD_HACER, // Generic 'hacer', specific ones like HACER_SEGUN are handled contextually below or by parser
+  'caso': TokenType.KEYWORD_CASO,
+  // 'por' will be checked for 'por referencia'
+  'de': TokenType.KEYWORD_DE,
+  'retornar': TokenType.KEYWORD_RETORNAR,
+  'fin': TokenType.KEYWORD_FIN,
+  'tipo': TokenType.KEYWORD_TIPO,
+  'registro': TokenType.KEYWORD_REGISTRO,
+  'arreglo': TokenType.KEYWORD_ARREGLO,
+  'procedimiento': TokenType.KEYWORD_PROCEDIMIENTO,
+  'finprocedimiento': TokenType.KEYWORD_FINPROCEDIMIENTO,
+  'modulo': TokenType.KEYWORD_MODULO,
+  'finmodulo': TokenType.KEYWORD_FINMODULO,
+  // Logical operators as keywords
+  'y': TokenType.KEYWORD_LOGICAL_AND,
+  '&': TokenType.KEYWORD_LOGICAL_AND,
+  '&&': TokenType.KEYWORD_LOGICAL_AND,
+  'o': TokenType.KEYWORD_LOGICAL_OR,
+  '|': TokenType.KEYWORD_LOGICAL_OR,
+  '||': TokenType.KEYWORD_LOGICAL_OR,
+  'no': TokenType.KEYWORD_LOGICAL_NOT,
+  // '!' handled after checking for '!='
 };
 
 export function lexer(input: string): Token[] {
@@ -54,7 +77,6 @@ export function lexer(input: string): Token[] {
     const startIndex = cursor;
     let char = input[cursor];
 
-    // Whitespace and Newlines
     if (/\s/.test(char)) {
       let value = '';
       let type = TokenType.WHITESPACE;
@@ -71,13 +93,12 @@ export function lexer(input: string): Token[] {
           cursor++;
         }
         tokens.push({ type, value, line, column: column - value.length, startIndex });
-        cursor--; // Adjust cursor because the outer loop will increment it
+        cursor--; 
       }
       cursor++;
       continue;
     }
 
-    // Comments: // ...
     if (char === '/' && input[cursor + 1] === '/') {
       let value = '//';
       column += 2;
@@ -88,11 +109,9 @@ export function lexer(input: string): Token[] {
         column++;
       }
       tokens.push({ type: TokenType.COMMENT, value, line, column: column - value.length, startIndex });
-      // No cursor++ here as it's handled by the loop or newline
       continue;
     }
 
-    // String literals: "..." or '...'
     if (char === '"' || char === "'") {
       const quoteType = char;
       let value = '';
@@ -100,9 +119,9 @@ export function lexer(input: string): Token[] {
       cursor++; 
       column++;
       while (cursor < input.length && input[cursor] !== quoteType) {
-        if (input[cursor] === '\n') { // PSeInt strings can't span lines usually
+        if (input[cursor] === '\n') { 
            tokens.push({ type: TokenType.UNKNOWN, value: quoteType + value, line, column: startColumn, startIndex });
-           break; // Exit while, let outer loop handle newline
+           break; 
         }
         value += input[cursor];
         cursor++;
@@ -112,13 +131,12 @@ export function lexer(input: string): Token[] {
         cursor++; 
         column++;
         tokens.push({ type: TokenType.STRING_LITERAL, value: quoteType + value + quoteType, line, column: startColumn, startIndex });
-      } else { // Unterminated string
+      } else { 
         tokens.push({ type: TokenType.UNKNOWN, value: quoteType + value, line, column: startColumn, startIndex });
       }
       continue;
     }
 
-    // Numbers: 123, 3.14
     if (/[0-9]/.test(char)) {
       let value = '';
       const startColumn = column;
@@ -141,8 +159,6 @@ export function lexer(input: string): Token[] {
       continue;
     }
 
-    // Operators and Punctuation
-    // Needs to handle multi-character operators like <-, <=, >=, <>
     if (char === '<') {
       if (input[cursor + 1] === '-') {
         tokens.push({ type: TokenType.OPERATOR_ASSIGN, value: '<-', line, column, startIndex });
@@ -166,8 +182,6 @@ export function lexer(input: string): Token[] {
       cursor++; column++; continue;
     }
     if (char === '=') {
-       // In PSeInt, '=' can be assignment or comparison. Context determines. Lexer usually marks as ambiguous or defaults to one.
-       // For highlighting, it's fine to treat as a generic operator or comparison.
         tokens.push({ type: TokenType.OPERATOR_EQ, value: '=', line, column, startIndex });
         cursor++; column++; continue;
     }
@@ -175,6 +189,12 @@ export function lexer(input: string): Token[] {
         tokens.push({ type: TokenType.OPERATOR_NEQ, value: '!=', line, column, startIndex });
         cursor += 2; column += 2; continue;
     }
+    // Handle '!' as KEYWORD_LOGICAL_NOT if not part of '!='
+    if (char === '!') {
+        tokens.push({ type: TokenType.KEYWORD_LOGICAL_NOT, value: '!', line, column, startIndex });
+        cursor++; column++; continue;
+    }
+
     if (char === ':') { tokens.push({ type: TokenType.COLON, value: ':', line, column, startIndex }); cursor++; column++; continue; }
     if (char === ';') { tokens.push({ type: TokenType.SEMICOLON, value: ';', line, column, startIndex }); cursor++; column++; continue; }
     if (char === ',') { tokens.push({ type: TokenType.COMMA, value: ',', line, column, startIndex }); cursor++; column++; continue; }
@@ -190,7 +210,6 @@ export function lexer(input: string): Token[] {
     if (char === '%') { tokens.push({ type: TokenType.OPERATOR_MODULO, value: '%', line, column, startIndex }); cursor++; column++; continue; }
 
 
-    // Keywords and Identifiers
     if (/[a-zA-Z_áéíóúÁÉÍÓÚñÑ]/.test(char)) {
       let value = '';
       const startColumn = column;
@@ -201,11 +220,10 @@ export function lexer(input: string): Token[] {
       }
       const lowerValue = value.toLowerCase();
       
-      // Handle 'HASTA QUE' specifically
       if (lowerValue === 'hasta' && input.substring(cursor).trimStart().toLowerCase().startsWith('que')) {
         const spaceMatch = input.substring(cursor).match(/^(\s*)/);
         const spaces = spaceMatch ? spaceMatch[0] : '';
-        const queWord = input.substring(cursor + spaces.length, cursor + spaces.length + 3); // "que"
+        const queWord = input.substring(cursor + spaces.length, cursor + spaces.length + 3); 
         if (queWord.toLowerCase() === 'que') {
             tokens.push({ type: TokenType.KEYWORD_HASTAQUE, value: value + spaces + queWord, line, column: startColumn, startIndex });
             cursor += spaces.length + 3;
@@ -213,21 +231,30 @@ export function lexer(input: string): Token[] {
             continue;
         }
       }
-      // Handle 'CON PASO'
        if (lowerValue === 'con' && input.substring(cursor).trimStart().toLowerCase().startsWith('paso')) {
         const spaceMatch = input.substring(cursor).match(/^(\s*)/);
         const spaces = spaceMatch ? spaceMatch[0] : '';
-        const pasoWord = input.substring(cursor + spaces.length, cursor + spaces.length + 4); // "paso"
+        const pasoWord = input.substring(cursor + spaces.length, cursor + spaces.length + 4); 
         if (pasoWord.toLowerCase() === 'paso') {
-            tokens.push({ type: TokenType.KEYWORD_CON, value: value + spaces + pasoWord, line, column: startColumn, startIndex }); // Or a combined KEYWORD_CONPASO
+            tokens.push({ type: TokenType.KEYWORD_CON, value: value + spaces + pasoWord, line, column: startColumn, startIndex }); 
             cursor += spaces.length + 4;
             column += spaces.length + 4;
             continue;
         }
       }
-      // Handle 'HACER' for 'SEGUN ... HACER' and 'MIENTRAS ... HACER'
+      if (lowerValue === 'por' && input.substring(cursor).trimStart().toLowerCase().startsWith('referencia')) {
+        const spaceMatch = input.substring(cursor).match(/^(\s*)/);
+        const spaces = spaceMatch ? spaceMatch[0] : '';
+        const referenciaWord = input.substring(cursor + spaces.length, cursor + spaces.length + "referencia".length);
+        if (referenciaWord.toLowerCase() === 'referencia') {
+            tokens.push({ type: TokenType.KEYWORD_POR_REFERENCIA, value: value + spaces + referenciaWord, line, column: startColumn, startIndex });
+            cursor += spaces.length + "referencia".length;
+            column += spaces.length + "referencia".length;
+            continue;
+        }
+      }
+
       if (lowerValue === 'hacer') {
-        // Check previous non-whitespace token if it was SEGUN or MIENTRAS
         let prevTokenMeaningful = null;
         for(let i = tokens.length - 1; i >=0; i--) {
             if(tokens[i].type !== TokenType.WHITESPACE && tokens[i].type !== TokenType.NEWLINE) {
@@ -243,19 +270,15 @@ export function lexer(input: string): Token[] {
             tokens.push({ type: TokenType.KEYWORD_HACER_MIENTRAS, value, line, column: startColumn, startIndex });
             continue;
         }
+        // If not specific, it might be the generic KEYWORD_HACER (e.g. for PARA...HACER)
+        // This will be picked up by the KEYWORDS[lowerValue] check below.
       }
 
 
       if (KEYWORDS[lowerValue]) {
         tokens.push({ type: KEYWORDS[lowerValue], value: value, line, column: startColumn, startIndex });
-      } else if (lowerValue === 'mod') {
+      } else if (lowerValue === 'mod') { // 'mod' is an operator, not a general keyword for highlighting
         tokens.push({ type: TokenType.OPERATOR_MODULO, value: value, line, column: startColumn, startIndex });
-      } else if (lowerValue === 'y' || lowerValue === '&') {
-        tokens.push({ type: TokenType.OPERATOR_AND, value: value, line, column: startColumn, startIndex });
-      } else if (lowerValue === 'o' || lowerValue === '|') {
-        tokens.push({ type: TokenType.OPERATOR_OR, value: value, line, column: startColumn, startIndex });
-      } else if (lowerValue === 'no' || lowerValue === '!') {
-         tokens.push({ type: TokenType.OPERATOR_NOT, value: value, line, column: startColumn, startIndex });
       }
       else {
         tokens.push({ type: TokenType.IDENTIFIER, value, line, column: startColumn, startIndex });
@@ -263,7 +286,6 @@ export function lexer(input: string): Token[] {
       continue;
     }
     
-    // Unknown characters
     tokens.push({ type: TokenType.UNKNOWN, value: char, line, column, startIndex });
     cursor++;
     column++;

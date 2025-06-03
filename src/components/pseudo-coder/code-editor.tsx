@@ -32,7 +32,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
     for (const token of tokens) {
       if (token.type === TokenType.EOF) break;
 
-      // Text before the current token (whitespace, uncaptured characters)
       if (token.startIndex > currentIndex) {
         result.push(codeToHighlight.substring(currentIndex, token.startIndex));
       }
@@ -79,6 +78,27 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
         case TokenType.KEYWORD_CADENA:
         case TokenType.KEYWORD_VERDADERO:
         case TokenType.KEYWORD_FALSO:
+        // New keywords
+        case TokenType.KEYWORD_VARIABLE:
+        case TokenType.KEYWORD_CONSTANTE:
+        case TokenType.KEYWORD_DESDE:
+        case TokenType.KEYWORD_HACER: // Generic Hacer
+        case TokenType.KEYWORD_CASO:
+        case TokenType.KEYWORD_POR_REFERENCIA:
+        case TokenType.KEYWORD_DE:
+        case TokenType.KEYWORD_RETORNAR:
+        case TokenType.KEYWORD_FIN:
+        case TokenType.KEYWORD_TIPO:
+        case TokenType.KEYWORD_REGISTRO:
+        case TokenType.KEYWORD_ARREGLO:
+        case TokenType.KEYWORD_PROCEDIMIENTO:
+        case TokenType.KEYWORD_FINPROCEDIMIENTO:
+        case TokenType.KEYWORD_MODULO:
+        case TokenType.KEYWORD_FINMODULO:
+        // Logical operators as keywords
+        case TokenType.KEYWORD_LOGICAL_AND:
+        case TokenType.KEYWORD_LOGICAL_OR:
+        case TokenType.KEYWORD_LOGICAL_NOT:
           className = 'text-primary font-bold';
           break;
         case TokenType.STRING_LITERAL:
@@ -103,9 +123,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
         case TokenType.OPERATOR_GT:
         case TokenType.OPERATOR_LTE:
         case TokenType.OPERATOR_GTE:
-        case TokenType.OPERATOR_AND:
-        case TokenType.OPERATOR_OR:
-        case TokenType.OPERATOR_NOT:
           className = 'text-cyan-600';
           break;
         case TokenType.COMMENT:
@@ -118,14 +135,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
         case TokenType.COMMA:
         case TokenType.SEMICOLON:
         case TokenType.COLON:
-           className = 'text-gray-700'; // Default for punctuation
+           className = 'text-gray-700'; 
            break;
         case TokenType.WHITESPACE:
         case TokenType.NEWLINE:
-          result.push(token.value); // Push whitespace/newline directly
+          result.push(token.value); 
           currentIndex = token.startIndex + token.value.length;
           continue;
-        default: // UNKNOWN or other unstyled tokens
+        default: 
           result.push(token.value);
           currentIndex = token.startIndex + token.value.length;
           continue;
@@ -135,7 +152,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
       currentIndex = token.startIndex + token.value.length;
     }
 
-    // Remaining text after the last token
     if (currentIndex < codeToHighlight.length) {
       result.push(codeToHighlight.substring(currentIndex));
     }
@@ -166,23 +182,23 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, setCode, onClear, onSave,
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-0 relative"> {/* Ensure CardContent is flex-grow and relative for editor positioning */}
-        <div className="absolute inset-0 overflow-auto"> {/* This div will handle scrolling */}
+      <CardContent className="flex-grow p-0 relative"> 
+        <div className="absolute inset-0 overflow-auto"> 
           <Editor
             value={code}
             onValueChange={setCode}
             highlight={highlightCode}
-            padding={12} // Equivalent to p-3
+            padding={12} 
             textareaClassName="outline-none"
             preClassName="outline-none"
             style={{
               fontFamily: '"Source Code Pro", monospace',
-              fontSize: '0.875rem', // text-sm
-              lineHeight: '1.25rem', // For text-sm
-              minHeight: '100%', // Ensure editor takes full height of its container
-              caretColor: 'var(--foreground)', // Use theme foreground color for caret
+              fontSize: '0.875rem', 
+              lineHeight: '1.25rem', 
+              minHeight: '100%', 
+              caretColor: 'var(--foreground)', 
             }}
-            className="h-full w-full bg-background text-foreground" // Ensure background and text color match theme
+            className="h-full w-full bg-background text-foreground" 
             aria-label="Pseudocode editor"
           />
         </div>
